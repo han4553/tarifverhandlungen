@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tarifverhandlung – Lernspiel</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=DM+Sans:wght@400;500&display=swap');
+
+:root {
+  --ink:#1a1612; --paper:#f9f6f0; --cream:#f0ebe0;
+  --red:#b83030; --red-light:#fdf0f0; --red-mid:#e8c0c0;
+  --blue:#1d4e89; --blue-light:#eef4fc; --blue-mid:#b8d0ee;
+  --green:#1a5c2e; --green-light:#edf7f0; --green-mid:#a8d4b4;
+  --amber:#7a4a00; --amber-light:#fef8ee; --amber-mid:#f0d090;
+  --gray:#5a5550; --border:#d8d0c0; --shadow:rgba(26,22,18,.08);
+  --serif:'Source Serif 4',Georgia,serif;
+  --sans:'DM Sans','Helvetica Neue',sans-serif;
+  --display:'Bebas Neue',Impact,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--cream)}
+body{font-family:var(--serif);color:var(--ink);overflow:hidden}
+
+.app{max-width:440px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:var(--paper);box-shadow:0 0 40px var(--shadow)}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:space-between;padding:10px 16px;flex-shrink:0}
+.topbar-title{font-family:var(--display);font-size:18px;letter-spacing:2px}
+.topbar-score{font-family:var(--sans);font-size:12px;color:rgba(249,246,240,.6)}
+.topbar-score span{color:var(--paper);font-weight:500;font-size:14px}
+
+/* ── PHASE STRIP ── */
+.phasestrip{display:flex;background:var(--cream);border-bottom:1px solid var(--border);flex-shrink:0;overflow:hidden}
+.phaseitem{flex:1;padding:6px 4px;text-align:center;font-family:var(--sans);font-size:9px;letter-spacing:.04em;color:var(--gray);border-right:1px solid var(--border);transition:all .3s;position:relative;line-height:1.3}
+.phaseitem:last-child{border-right:none}
+.phaseitem.done{background:var(--green-light);color:var(--green)}
+.phaseitem.active{background:var(--ink);color:var(--paper);font-weight:500}
+.phaseitem.done::after{content:'✓';position:absolute;top:2px;right:3px;font-size:8px;color:var(--green)}
+
+/* ── SCROLL BODY ── */
+.body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.pad{padding:16px}
+
+/* ── TYPOGRAPHY ── */
+h1{font-family:var(--display);font-size:36px;letter-spacing:2px;line-height:1;color:var(--ink);margin-bottom:6px}
+h2{font-family:var(--display);font-size:22px;letter-spacing:1px;color:var(--ink);margin-bottom:8px}
+h3{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink);margin-bottom:6px}
+p{font-size:14px;line-height:1.65;color:var(--gray);margin-bottom:10px}
+.lead{font-size:15px;line-height:1.6;color:var(--ink)}
+
+/* ── CARDS ── */
+.card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:12px}
+.card-red{border-left:3px solid var(--red);background:var(--red-light)}
+.card-blue{border-left:3px solid var(--blue);background:var(--blue-light)}
+.card-green{border-left:3px solid var(--green);background:var(--green-light)}
+.card-amber{border-left:3px solid var(--amber);background:var(--amber-light)}
+.card-ink{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.card-ink p,.card-ink h3{color:rgba(249,246,240,.8)}
+.card-ink h2{color:var(--paper)}
+
+/* ── BEGRIFFE ── */
+.begriffs-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.begriff{background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px;cursor:pointer;transition:all .2s}
+.begriff:active{transform:scale(.97)}
+.begriff-word{font-family:var(--sans);font-size:12px;font-weight:500;color:var(--ink);margin-bottom:3px}
+.begriff-short{font-size:11px;color:var(--gray);line-height:1.4}
+.begriff.expanded{grid-column:span 2;border-color:var(--blue);background:var(--blue-light)}
+.begriff-detail{font-size:12px;line-height:1.6;color:var(--blue);margin-top:6px;display:none}
+.begriff.expanded .begriff-detail{display:block}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat{background:var(--cream);border-radius:6px;padding:10px;text-align:center}
+.stat-val{font-family:var(--display);font-size:26px;letter-spacing:1px;line-height:1}
+.stat-label{font-family:var(--sans);font-size:10px;color:var(--gray);margin-top:2px;letter-spacing:.03em}
+.stat.green .stat-val{color:var(--green)}
+.stat.red .stat-val{color:var(--red)}
+.stat.blue .stat-val{color:var(--blue)}
+.stat.amber .stat-val{color:var(--amber)}
+
+/* ── SLIDER ── */
+.slider-section{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:12px}
+.slider-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.slider-head-label{font-family:var(--sans);font-size:13px;font-weight:500}
+.slider-head-val{font-family:var(--display);font-size:24px;letter-spacing:1px;color:var(--blue)}
+input[type=range]{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--border);outline:none;margin:6px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--ink);cursor:pointer;box-shadow:0 2px 6px var(--shadow)}
+.slider-labels{display:flex;justify-content:space-between;font-family:var(--sans);font-size:10px;color:var(--gray);margin-top:2px}
+.slider-context{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
+.slider-ctx-item{background:var(--cream);border-radius:4px;padding:7px 6px;text-align:center}
+.slider-ctx-val{font-family:var(--display);font-size:17px;letter-spacing:.5px}
+.slider-ctx-label{font-size:9px;color:var(--gray);font-family:var(--sans);letter-spacing:.03em;line-height:1.3;margin-top:1px}
+
+/* ── QUIZ ── */
+.quiz-progress{height:4px;background:var(--border);border-radius:2px;margin-bottom:12px;overflow:hidden}
+.quiz-progress-fill{height:100%;background:var(--ink);border-radius:2px;transition:width .4s ease}
+.quiz-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.quiz-counter{font-family:var(--sans);font-size:11px;color:var(--gray)}
+.quiz-score{font-family:var(--sans);font-size:11px;font-weight:500}
+.quiz-tag{display:inline-block;font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.05em;background:var(--ink);color:var(--paper);padding:3px 9px;border-radius:3px;margin-bottom:8px}
+.quiz-q{font-size:16px;line-height:1.5;margin-bottom:14px;font-style:italic}
+.quiz-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.quiz-opt{background:#fff;border:1px solid var(--border);border-radius:6px;padding:11px 14px;font-size:14px;line-height:1.4;cursor:pointer;text-align:left;font-family:var(--serif);color:var(--ink);transition:all .18s;display:flex;align-items:flex-start;gap:10px}
+.quiz-opt-letter{font-family:var(--display);font-size:16px;color:var(--gray);flex-shrink:0;line-height:1.3;width:16px}
+.quiz-opt:active{transform:scale(.98)}
+.quiz-opt.ok{background:var(--green-light);border-color:var(--green);color:var(--green)}
+.quiz-opt.ok .quiz-opt-letter{color:var(--green)}
+.quiz-opt.bad{background:var(--red-light);border-color:var(--red);color:var(--red)}
+.quiz-opt.bad .quiz-opt-letter{color:var(--red)}
+.quiz-opt.reveal{background:var(--green-light);border-color:var(--green-mid);color:var(--green);opacity:.7}
+.quiz-opt:disabled{cursor:default}
+.quiz-expl{background:var(--cream);border-left:3px solid var(--ink);border-radius:0 6px 6px 0;padding:10px 12px;font-size:13px;line-height:1.6;color:var(--ink);display:none;margin-bottom:8px}
+.quiz-expl.show{display:block;animation:fadeIn .3s ease}
+.quiz-expl-hed{font-family:var(--sans);font-size:11px;font-weight:500;margin-bottom:4px;color:var(--gray)}
+.quiz-connection{background:var(--blue-light);border:1px solid var(--blue-mid);border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.6;color:var(--blue);display:none;margin-bottom:8px}
+.quiz-connection.show{display:block}
+.quiz-connection strong{color:var(--blue);font-style:normal}
+
+/* ── SPEECH BUBBLES ── */
+.dialog{margin-bottom:10px}
+.bubble-row{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.bubble-row.right{flex-direction:row-reverse}
+.avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--ink);color:var(--paper)}
+.avatar.ag{background:var(--amber-mid)}
+.bubble{border-radius:10px;padding:8px 12px;font-size:13px;line-height:1.55;max-width:82%;position:relative}
+.bubble-gew{background:var(--ink);color:var(--paper);border-radius:10px 10px 10px 2px}
+.bubble-ag{background:var(--cream);border:1px solid var(--border);border-radius:10px 10px 2px 10px}
+.bubble-name{font-family:var(--sans);font-size:9px;font-weight:500;color:var(--gray);margin-bottom:3px}
+.bubble-gew .bubble-name{color:rgba(249,246,240,.6)}
+
+/* ── ACTION BUTTONS ── */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.action{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;text-align:left;transition:all .18s;font-family:var(--serif)}
+.action:active{transform:scale(.97)}
+.action-icon{font-size:20px;margin-bottom:6px;display:block}
+.action-name{font-family:var(--sans);font-size:12px;font-weight:500;color:var(--ink);margin-bottom:3px}
+.action-desc{font-size:11px;color:var(--gray);line-height:1.4}
+.action-effect{font-size:10px;font-family:var(--sans);margin-top:4px;padding:2px 6px;border-radius:3px;display:inline-block}
+.action.strat-ok{border-color:var(--green);background:var(--green-light)}
+.action.strat-ok .action-name{color:var(--green)}
+.action.strat-warn{border-color:var(--amber);background:var(--amber-light)}
+.action.strat-warn .action-name{color:var(--amber)}
+.action.strat-bad{border-color:var(--red);background:var(--red-light)}
+.action.strat-bad .action-name{color:var(--red)}
+.action.disabled-action{opacity:.4;cursor:not-allowed;pointer-events:none}
+.action-full{grid-column:span 2}
+
+/* ── BUTTONS ── */
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:6px;font-family:var(--display);font-size:18px;letter-spacing:2px;cursor:pointer;transition:all .15s;margin-bottom:8px}
+.btn:active{transform:scale(.97)}
+.btn-ink{background:var(--ink);color:var(--paper)}
+.btn-ink:hover{opacity:.9}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--gray);font-size:14px;padding:10px}
+.btn-green{background:var(--green);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+
+/* ── RESULT BOX ── */
+.rbox{border-radius:6px;padding:11px 14px;font-size:13px;line-height:1.6;margin-bottom:10px;border-left:3px solid}
+.rbox.ok{background:var(--green-light);border-color:var(--green);color:var(--green)}
+.rbox.bad{background:var(--red-light);border-color:var(--red);color:var(--red)}
+.rbox.info{background:var(--blue-light);border-color:var(--blue);color:var(--blue)}
+.rbox.warn{background:var(--amber-light);border-color:var(--amber);color:var(--amber)}
+
+/* ── TABLE ── */
+table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px}
+th{text-align:left;padding:6px 8px;font-family:var(--sans);font-size:10px;letter-spacing:.05em;color:var(--gray);border-bottom:1px solid var(--border)}
+td{padding:7px 8px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:top}
+tr:last-child td{border-bottom:none}
+.td-r{text-align:right;font-family:var(--sans);font-weight:500}
+.td-green{color:var(--green)}
+.td-red{color:var(--red)}
+
+/* ── GLOSSAR ── */
+.glossar-entry{border-bottom:1px solid var(--border);padding:10px 0}
+.glossar-entry:last-child{border-bottom:none}
+.glossar-term{font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink);display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.glossar-term-tag{font-size:10px;background:var(--cream);border:1px solid var(--border);border-radius:3px;padding:1px 6px;color:var(--gray);font-weight:400}
+.glossar-def{font-size:13px;line-height:1.65;color:var(--gray);margin-top:6px;display:none;padding-left:0}
+.glossar-def.open{display:block}
+.glossar-bsp{background:var(--cream);border-radius:4px;padding:7px 10px;margin-top:6px;font-size:12px;font-style:italic;color:var(--ink);line-height:1.5}
+.glossar-bsp::before{content:'Beispiel: ';font-style:normal;font-weight:500;color:var(--gray)}
+.glossar-zusammenhang{font-size:12px;color:var(--blue);margin-top:6px;line-height:1.5}
+.glossar-zusammenhang::before{content:'↔ Zusammenhang: ';font-weight:500}
+
+/* ── LERNKARTE ── */
+.lernkarte{background:var(--ink);color:var(--paper);border-radius:8px;padding:16px;margin-bottom:10px}
+.lernkarte-frage{font-style:italic;font-size:15px;line-height:1.5;margin-bottom:10px}
+.lernkarte-antwort{font-size:13px;line-height:1.65;color:rgba(249,246,240,.85);border-top:1px solid rgba(249,246,240,.15);padding-top:10px;display:none}
+.lernkarte-antwort.show{display:block}
+.lernkarte-btn{background:rgba(249,246,240,.1);border:1px solid rgba(249,246,240,.2);color:var(--paper);font-family:var(--sans);font-size:12px;padding:6px 14px;border-radius:4px;cursor:pointer;margin-top:8px}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:12px;gap:0}
+.tab{flex:1;padding:9px 6px;font-family:var(--sans);font-size:11px;text-align:center;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.03em}
+.tab.active{color:var(--ink);border-bottom-color:var(--ink);font-weight:500}
+
+/* ── VERHANDLUNGSTHERMOMETER ── */
+.thermo-wrap{margin-bottom:12px}
+.thermo-bar{position:relative;height:20px;background:linear-gradient(to right,var(--red-light),var(--amber-light),var(--green-light));border-radius:10px;border:1px solid var(--border);overflow:visible;margin-bottom:6px}
+.thermo-ag{position:absolute;top:-4px;width:12px;height:28px;border-radius:6px;background:var(--amber);transition:left .5s ease;transform:translateX(-50%)}
+.thermo-gew{position:absolute;top:-4px;width:12px;height:28px;border-radius:6px;background:var(--blue);transition:left .5s ease;transform:translateX(-50%)}
+.thermo-zone{position:absolute;top:0;height:100%;background:rgba(26,92,46,.15);border-radius:6px;transition:all .5s ease}
+.thermo-labels{display:flex;justify-content:space-between;font-family:var(--sans);font-size:9px;color:var(--gray)}
+.thermo-legend{display:flex;gap:12px;margin-top:6px;font-family:var(--sans);font-size:10px;color:var(--gray)}
+.thermo-leg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.anim{animation:fadeIn .35s ease}
+.score-pop{animation:scorePop .4s ease}
+@keyframes scorePop{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:14px 0}
+.section-label{font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.08em;color:var(--gray);text-transform:uppercase;margin-bottom:8px}
+.pill{display:inline-block;font-family:var(--sans);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;margin-right:4px;margin-bottom:4px}
+.pill-green{background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)}
+.pill-red{background:var(--red-light);color:var(--red);border:1px solid var(--red-mid)}
+.pill-blue{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid)}
+.pill-amber{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-mid)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-title">TARIFVERHANDLUNG</div>
+    <div class="topbar-score">Punkte: <span id="score-disp">0</span></div>
+  </div>
+  <div id="phasestrip" class="phasestrip"></div>
+  <div class="body" id="mainbody">
+    <div class="pad" id="content"></div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   DATEN
+════════════════════════════════════════════════════ */
+
+const GLOSSAR = [
+  {
+    term:'Tarifvertrag',tag:'Kernbegriff',
+    def:'Ein Tarifvertrag ist ein schriftlicher Vertrag zwischen einer <strong>Gewerkschaft</strong> und einem <strong>Arbeitgeberverband</strong> (oder einzelnem Arbeitgeber), der Mindestarbeitsbedingungen für eine gesamte Branche oder einen Betrieb festlegt.',
+    bsp:'Der Flächentarifvertrag der Metall- und Elektroindustrie gilt für alle Beschäftigten der Mitgliedsbetriebe des AG-Verbands — egal ob sie Gewerkschaftsmitglied sind oder nicht.',
+    zusammenhang:'Grundlage der Tarifautonomie · Unterschied zum Einzelarbeitsvertrag · Kann allgemeinverbindlich erklärt werden'
+  },
+  {
+    term:'Tarifautonomie',tag:'Verfassungsrecht',
+    def:'Das in <strong>Art. 9 Abs. 3 GG</strong> verankerte Recht von Gewerkschaften und Arbeitgeberverbänden, Arbeitsbedingungen <strong>ohne staatliche Einmischung</strong> eigenständig zu regeln. Der Staat darf weder Tarifinhalte vorschreiben noch Abschlüsse verbieten.',
+    bsp:'Der Staat legt keinen Lohn für Metallarbeiter fest — das regeln IG Metall und Gesamtmetall unter sich.',
+    zusammenhang:'Art. 9 Abs. 3 GG · Koalitionsfreiheit · Abgrenzung zum gesetzlichen Mindestlohn'
+  },
+  {
+    term:'Friedenspflicht',tag:'Arbeitskampfrecht',
+    def:'Während eines <strong>laufenden Tarifvertrags</strong> sind Streiks und Aussperrungen verboten. Erst nach Ablauf des Vertrags und dem Scheitern der Verhandlungen darf der Arbeitskampf beginnen.',
+    bsp:'Solange der IG-Metall-Tarifvertrag bis Ende Oktober gilt, darf die Gewerkschaft keinen Streik ausrufen — erst danach ist sie frei.',
+    zusammenhang:'Läuft parallel zum Tarifvertrag · Endet mit Ablauf · Ausnahme: Unterstützungsstreik'
+  },
+  {
+    term:'Warnstreik',tag:'Arbeitskampf',
+    def:'Ein <strong>kurzfristiger, befristeter Streik</strong> (Stunden bis maximal ein Tag), der während laufender Tarifverhandlungen nach Ablauf der Friedenspflicht eingesetzt wird, um Druck auf die Arbeitgeberseite zu erhöhen — ohne gleich in den Vollstreik zu gehen.',
+    bsp:'GDL-Lokführer legen die Arbeit für 3 Stunden nieder, um die Deutsche Bahn zu mehr Angebot zu bewegen.',
+    zusammenhang:'Schwächeres Mittel als Vollstreik · Setzt Urabstimmung voraus · Abgrenzung: wilder Streik (rechtswidrig)'
+  },
+  {
+    term:'Schlichtung',tag:'Konfliktlösung',
+    def:'Wenn Verhandlungen scheitern, kann eine <strong>neutrale Schlichterin oder ein Schlichter</strong> eingesetzt werden, der zwischen den Parteien vermittelt und einen Kompromissvorschlag unterbreitet. Beide Seiten müssen dem Schlichter zustimmen.',
+    bsp:'Hans-Jochen Vogel (SPD) schlichtete 1984 den Tarifkonflikt der Metaller um die 35-Stunden-Woche.',
+    zusammenhang:'Alternative zum Streik · Schlichterspruch ist kein Urteil · Kann scheitern → dann Urabstimmung'
+  },
+  {
+    term:'Aussperrung',tag:'Arbeitskampf',
+    def:'Das Gegenstück zum Streik auf <strong>Arbeitgeberseite</strong>: Der Arbeitgeber schließt Arbeitnehmer vom Betrieb aus und zahlt keinen Lohn. Ziel ist es, den wirtschaftlichen Druck auf die Gewerkschaft zu erhöhen.',
+    bsp:'Im Druckereistreik 1984 sperrten Verlage Beschäftigte für mehrere Wochen aus, um Gewerkschaftsmitglieder in Regionen ohne Streikaufruf unter Druck zu setzen.',
+    zusammenhang:'Gegenstück zum Streik · Umstritten: BVerfG ließ sie 1991 grundsätzlich zu · Selten eingesetzt'
+  },
+  {
+    term:'Allgemeinverbindlichkeit',tag:'Tarifrecht',
+    def:'Erklärt das Bundesministerium für Arbeit einen Tarifvertrag für <strong>allgemeinverbindlich</strong>, gilt er für <strong>alle Betriebe der Branche</strong> — auch für Arbeitgeber, die keinem Verband angehören. Ziel: Lohndumping verhindern.',
+    bsp:'Im Bauhauptgewerbe gilt der Mindestlohn per Allgemeinverbindlichkeit für alle Baufirmen — auch für ausländische Subunternehmer.',
+    zusammenhang:'Antrag durch AG- oder AN-Seite · Voraussetzung: öffentliches Interesse · Instrument gegen Tarifumgehung'
+  },
+  {
+    term:'Reallohn',tag:'Ökonomie',
+    def:'Der <strong>Reallohn</strong> ist der Nominallohn (vereinbarte Lohnerhöhung) <strong>abzüglich der Inflation</strong>. Nur wenn die Lohnerhöhung über der Inflation liegt, steigt die Kaufkraft der Beschäftigten.',
+    bsp:'Tariferhöhung +3 %, Inflation +4,2 % → Reallohn −1,2 %. Die Beschäftigten verlieren Kaufkraft trotz Lohnerhöhung.',
+    zusammenhang:'Zentrale Messgröße für Arbeitnehmer · Kerngröße in Verhandlungen · Verknüpfung mit VPI/Preisindex'
+  },
+  {
+    term:'Urabstimmung',tag:'Arbeitskampf',
+    def:'Bevor eine Gewerkschaft zu einem Streik aufrufen darf, müssen mindestens <strong>75 % der betroffenen Mitglieder</strong> in einer Urabstimmung dem Streik zustimmen. Das stellt sicher, dass ein Streik wirklich von der Basis getragen wird.',
+    bsp:'Ver.di ließ 2023 die Postbeschäftigten abstimmen: 85,9 % stimmten für den Streik — damit konnte der Ausstand beginnen.',
+    zusammenhang:'Voraussetzung für rechtmäßigen Streik · Innere Demokratie der Gewerkschaft · Legitimation'
+  },
+];
+
+const FRAGEN = [
+  {
+    phase:'vor',kategorie:'Definition',
+    frage:'Was unterscheidet einen Tarifvertrag von einem Einzelarbeitsvertrag?',
+    opts:['Er gilt kollektiv für eine ganze Branche/Betrieb — nicht individuell','Er wird vom Staat festgelegt','Er gilt nur für Gewerkschaftsmitglieder','Er kann nur von Betriebsräten ausgehandelt werden'],
+    r:0,
+    erklaerung:'Ein Tarifvertrag wird zwischen Gewerkschaft und AG-Verband ausgehandelt und legt Mindestbedingungen fest, die für alle Beschäftigten der Branche (auch Nichtmitglieder) gelten.',
+    zusammenhang:'Tarifvertrag → kollektiv für viele · Einzelarbeitsvertrag → individuell, muss mindestens den Tarifvertrag einhalten · Günstigkeitsprinzip: Im Zweifel gilt das Günstigere für den Arbeitnehmer.'
+  },
+  {
+    phase:'vor',kategorie:'Verfassungsrecht',
+    frage:'In welchem Grundgesetzartikel ist das Streikrecht verankert?',
+    opts:['Art. 9 Abs. 3 GG (Koalitionsfreiheit)','Art. 5 GG (Meinungsfreiheit)','Art. 12 GG (Berufsfreiheit)','Art. 14 GG (Eigentumsrecht)'],
+    r:0,
+    erklaerung:'Art. 9 Abs. 3 GG schützt das Recht, Koalitionen (Gewerkschaften, AG-Verbände) zu bilden und Tarifautonomie zu betreiben — das schließt das Streikrecht ein.',
+    zusammenhang:'Art. 9 Abs. 3 GG → Tarifautonomie → Streikrecht als Folge · Nur Gewerkschaften dürfen streiken — keine spontanen "wilden Streiks"'
+  },
+  {
+    phase:'vor',kategorie:'Arbeitskampf',
+    frage:'Was versteht man unter der "Friedenspflicht"?',
+    opts:['Streikverbot während eines laufenden Tarifvertrags','Pflicht zur Einigung innerhalb von 30 Tagen','Verbot von Aussperrungen','Staatliche Schlichtungspflicht'],
+    r:0,
+    erklaerung:'Solange ein Tarifvertrag läuft, sind Streiks und Aussperrungen verboten. Erst nach dessen Ablauf und dem Scheitern der Verhandlungen darf der Arbeitskampf beginnen.',
+    zusammenhang:'Friedenspflicht endet → Warnstreik möglich → Vollstreik (nach Urabstimmung 75 %) → Schlichtung als Alternative'
+  },
+  {
+    phase:'waehrend',kategorie:'Strategie',
+    frage:'Du drohst mit einem Warnstreik. Was ist ein Warnstreik?',
+    opts:['Kurzfristiger Streik (Stunden/1 Tag) als Druckmittel während Verhandlungen','Streik nach endgültigem Scheitern aller Verhandlungen','Spontaner Streik ohne Gewerkschaftsaufruf','Streik mit Gewaltandrohung'],
+    r:0,
+    erklaerung:'Der Warnstreik ist ein zeitlich begrenztes, taktisches Mittel, um den AG unter Druck zu setzen — ohne gleich einen kostspieligen Vollstreik auszurufen. Er ist rechtmäßig, wenn die Friedenspflicht abgelaufen ist.',
+    zusammenhang:'Warnstreik → schwächer als Vollstreik → setzt kein Urabstimmungsergebnis voraus (str.) → wirkt als Signal · Vergleich: wilder Streik = rechtswidrig, weil ohne Gewerkschaftsbeschluss'
+  },
+  {
+    phase:'waehrend',kategorie:'Ökonomie',
+    frage:'Die Inflation liegt bei 4,2 %. Du hast +3 % Lohnerhöhung erkämpft. Was bedeutet das für den Reallohn?',
+    opts:['Reallohn sinkt um 1,2 % — Kaufkraftverlust trotz Erhöhung','Reallohn steigt um 3 %','Reallohn bleibt gleich, weil es ja eine Erhöhung gibt','Reallohn steigt um 7,2 %'],
+    r:0,
+    erklaerung:'Reallohn = Nominallohn − Inflation. +3 % − 4,2 % = −1,2 %. Obwohl der Lohn nominal steigt, verlieren die Beschäftigten Kaufkraft. Ein echter Reallohnzuwachs braucht mehr als die Inflationsrate.',
+    zusammenhang:'Reallohn ist die wichtigste Kennzahl für Arbeitnehmer — nicht der Nominallohn · Bei hoher Inflation = härtere Gewerkschaftsforderungen · VPI (Verbraucherpreisindex) als Referenz'
+  },
+  {
+    phase:'waehrend',kategorie:'Arbeitskampf',
+    frage:'Was ist eine "Aussperrung" und wer nutzt sie?',
+    opts:['AG schließt Arbeitnehmer aus dem Betrieb aus — Gegenmittel zum Streik','Gewerkschaft schließt Streikbrecher aus','Gericht sperrt den Betrieb vorübergehend','Betriebsrat sperrt die Produktion'],
+    r:0,
+    erklaerung:'Die Aussperrung ist das Arbeitskampfmittel der Arbeitgeberseite: Betriebe werden für Arbeitnehmer gesperrt, kein Lohn wird gezahlt. Das BVerfG hat sie 1991 grundsätzlich als zulässig erklärt, sie ist aber umstritten und selten.',
+    zusammenhang:'Asymmetrie: Streik = AN-Waffe · Aussperrung = AG-Waffe · Schlichtung = Ausweg für beide Seiten'
+  },
+  {
+    phase:'nach',kategorie:'Tarifrecht',
+    frage:'Was bedeutet "Allgemeinverbindlichkeit" eines Tarifvertrags?',
+    opts:['Er gilt für alle Betriebe der Branche — auch Nicht-Verbandsmitglieder','Er wird automatisch nach 2 Jahren verlängert','Er gilt europaweit','Er muss vom Bundestag genehmigt werden'],
+    r:0,
+    erklaerung:'Erklärt das Bundesarbeitsministerium einen Tarifvertrag für allgemeinverbindlich, müssen ihn auch Arbeitgeber einhalten, die keinem Verband angehören. Ziel: Lohndumping durch Nicht-Mitglieder verhindern.',
+    zusammenhang:'Besonders relevant in Branchen mit niedrigen Löhnen (Bau, Pflege) · Instrument gegen Unterbietung · Voraussetzung: öffentliches Interesse'
+  },
+  {
+    phase:'nach',kategorie:'Verfassungsrecht',
+    frage:'Wie unterscheidet sich Tarifautonomie von staatlicher Lohnfestsetzung?',
+    opts:['Tarifautonomie: Sozialpartner handeln frei aus. Staatliche Festsetzung: Staat gibt Löhne vor — verletzt Art. 9 Abs. 3 GG','Kein Unterschied — Ergebnis ist das gleiche','Tarifautonomie gilt nur für Großbetriebe','Staatliche Festsetzung ist besser, weil einheitlicher'],
+    r:0,
+    erklaerung:'Tarifautonomie (Art. 9 Abs. 3 GG) schützt das Recht, Arbeitsbedingungen ohne staatlichen Eingriff zu regeln. Der Staat darf keine Tarifverträge vorschreiben. Ausnahme: Der gesetzliche Mindestlohn setzt eine untere Grenze, greift aber nicht in konkrete Tarifverhandlungen ein.',
+    zusammenhang:'Abgrenzung: Mindestlohn = staatlicher Eingriff als Untergrenze · Tarifvertrag = freie Vereinbarung darüber · Art. 9 Abs. 3 GG als Schutzrecht'
+  },
+];
+
+const VERHANDLUNGS_AKTIONEN = [
+  {
+    id:'konzession',icon:'↘',name:'Konzession machen',
+    desc:'Eigene Forderung senken, Kompromissbereitschaft signalisieren',
+    paed:'In echten Verhandlungen: Konzessionen zeigen Kooperationsbereitschaft, können aber als Schwäche gelesen werden. Timing ist entscheidend.',
+    effekt:'AG-Angebot steigt leicht · Abstand sinkt'
+  },
+  {
+    id:'sacharg',icon:'📊',name:'Sachargument',
+    desc:'Inflation, Produktivität und Unternehmensgewinn als Belege anführen',
+    paed:'Faktenbasierte Argumente sind langfristig überzeugender als Druck. Referenz auf Statistisches Bundesamt, IAB oder Unternehmensberichte.',
+    effekt:'AG-Angebot steigt moderat · Glaubwürdigkeit ++'
+  },
+  {
+    id:'druck',icon:'⚠️',name:'Warnstreik androhen',
+    desc:'Bereitschaft der Mitglieder als Druckmittel einsetzen',
+    paed:'Nur wirksam, wenn die Urabstimmung tatsächlich einen hohen Rückhalt zeigt. Leere Drohungen untergraben die Verhandlungsposition.',
+    effekt:'AG-Angebot steigt stärker · aber Konfliktrisiko steigt'
+  },
+  {
+    id:'schlichtung',icon:'⚖️',name:'Schlichtung vorschlagen',
+    desc:'Neutrale Vermittlerin einsetzen lassen',
+    paed:'Schlichtung ist kein Versagen — oft die schnellste Lösung. Der Schlichterspruch ist ein Kompromissvorschlag, den beide Seiten annehmen oder ablehnen können.',
+    effekt:'Beide Seiten treffen sich in der Mitte'
+  },
+];
+
+/* ════════════════════════════════════════════════════
+   SPIELZUSTAND
+════════════════════════════════════════════════════ */
+const G = {
+  screen:'start',
+  score:0, maxScore:0,
+  lohnForderung:6.0,
+  gegenangebot:2.2,
+  verhandlungsRunde:0,
+  letzteAktion:null,
+  finalDeal:null,
+  scheitern:false,
+  activeTab:'spiel',
+  glossarOpen:-1,
+  lernkarteSide:'frage',
+  quizPhase:'vor',
+  quizIdx:0,
+  quizAnswered:false,
+  quizCorrect:false,
+  lastChoice:-1,
+  quizQueue:[],
+  phaseIdx:0,
+  verhandlungsDiaolog:[],
+};
+
+const PHASE_NAMES = ['Vorbereitung','Lerncheck','Verhandlung','Abschluss','Auswertung'];
+
+function setScreen(s){ G.screen=s; render(); }
+function addScore(n){ G.score+=n; G.maxScore+=10; animScore(); }
+function animScore(){ const el=document.getElementById('score-disp'); if(el){el.textContent=G.score; el.classList.add('score-pop'); setTimeout(()=>el.classList.remove('score-pop'),400);} }
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+
+/* ════════════════════════════════════════════════════
+   PHASE STRIP
+════════════════════════════════════════════════════ */
+function renderPhaseStrip(){
+  const strip=document.getElementById('phasestrip');
+  strip.innerHTML=PHASE_NAMES.map((n,i)=>`<div class="phaseitem ${i<G.phaseIdx?'done':i===G.phaseIdx?'active':''}">${n}</div>`).join('');
+}
+
+/* ════════════════════════════════════════════════════
+   MASTER RENDER
+════════════════════════════════════════════════════ */
+function render(){
+  renderPhaseStrip();
+  document.getElementById('score-disp').textContent=G.score;
+  const c=document.getElementById('content');
+  c.className='pad anim';
+  if(G.screen==='start')       c.innerHTML=renderStart();
+  else if(G.screen==='vorbereitung') c.innerHTML=renderVorbereitung();
+  else if(G.screen==='quiz_vor')     c.innerHTML=renderQuiz('vor');
+  else if(G.screen==='verhandlung')  c.innerHTML=renderVerhandlung();
+  else if(G.screen==='abschluss')    c.innerHTML=renderAbschluss();
+  else if(G.screen==='quiz_nach')    c.innerHTML=renderQuiz('nach');
+  else if(G.screen==='ergebnis')     c.innerHTML=renderErgebnis();
+  else if(G.screen==='glossar')      c.innerHTML=renderGlossar();
+  document.getElementById('mainbody').scrollTop=0;
+  attachAll();
+}
+
+/* ════════════════════════════════════════════════════
+   START
+════════════════════════════════════════════════════ */
+function renderStart(){
+  G.phaseIdx=0;
+  return `
+  <div style="margin-bottom:14px">
+    <div class="section-label">Berufsschule · Lernfeld Wirtschaft & Gesellschaft</div>
+    <h1>Tarif­verhandlung</h1>
+    <p class="lead">Du verhandelst als Gewerkschaftssekretärin für 12.000 Beschäftigte in der Metallverarbeitung. Erkämpfe faire Löhne — und lerne die Grundbegriffe des deutschen Tarifrechts.</p>
+  </div>
+
+  <div class="card card-blue">
+    <h3>Was dich erwartet</h3>
+    <table style="margin:0">
+      <tr><td><span class="pill pill-green">1</span></td><td>Begriffe &amp; Zusammenhänge kennenlernen</td></tr>
+      <tr><td><span class="pill pill-blue">2</span></td><td>Lerncheck: 3 Fragen vor der Verhandlung</td></tr>
+      <tr><td><span class="pill pill-amber">3</span></td><td>Tarifverhandlung mit echten Entscheidungen</td></tr>
+      <tr><td><span class="pill pill-red">4</span></td><td>Abschluss + 2 Wissensfragen danach</td></tr>
+      <tr><td><span class="pill pill-green">5</span></td><td>Vollständige pädagogische Auswertung</td></tr>
+    </table>
+  </div>
+
+  <div class="section-label">Situation</div>
+  <div class="stats-row">
+    <div class="stat blue"><div class="stat-val">4,2 %</div><div class="stat-label">Aktuelle Inflation</div></div>
+    <div class="stat green"><div class="stat-val">+18 %</div><div class="stat-label">Unternehmensgewinn</div></div>
+    <div class="stat"><div class="stat-val">+2,8 %</div><div class="stat-label">Letzter Abschluss</div></div>
+    <div class="stat blue"><div class="stat-val">68 %</div><div class="stat-label">Org.-Grad GEW</div></div>
+  </div>
+
+  <div class="rbox info">Die Beschäftigten haben trotz des letzten Abschlusses real Kaufkraft verloren (2,8 % − 4,2 % = −1,4 %). Deine Aufgabe: diesmal echten Reallohnzuwachs erkämpfen.</div>
+
+  <button class="btn btn-ink" onclick="goVorbereitung()">Zum Glossar &amp; Lerncheck</button>
+  <button class="btn btn-ghost" onclick="G.screen='glossar';render()">Nur Glossar ansehen</button>`;
+}
+
+/* ════════════════════════════════════════════════════
+   VORBEREITUNG (Begriffe + Tab-Glossar-Karte)
+════════════════════════════════════════════════════ */
+function goVorbereitung(){
+  G.screen='vorbereitung'; G.phaseIdx=0;
+  render();
+}
+
+function renderVorbereitung(){
+  G.phaseIdx=0;
+  const tab=G.activeTab||'begriffe';
+  return `
+  <h2>Vorbereitung</h2>
+  <p>Bevor du verhandelst: Lerne die wichtigsten Begriffe und Zusammenhänge kennen.</p>
+
+  <div class="tabs">
+    <div class="tab ${tab==='begriffe'?'active':''}" onclick="G.activeTab='begriffe';render()">Schlüsselbegriffe</div>
+    <div class="tab ${tab==='zusammen'?'active':''}" onclick="G.activeTab='zusammen';render()">Zusammenhänge</div>
+    <div class="tab ${tab==='karten'?'active':''}" onclick="G.activeTab='karten';render()">Lernkarten</div>
+  </div>
+
+  ${tab==='begriffe'?renderBegriffe():tab==='zusammen'?renderZusammenhaenge():renderLernkarten()}
+
+  <div class="divider"></div>
+  <button class="btn btn-ink" onclick="startQuizVor()">Zum Lerncheck (3 Fragen) →</button>`;
+}
+
+function renderBegriffe(){
+  const kernbegriffe=[GLOSSAR[0],GLOSSAR[1],GLOSSAR[7]];
+  const arbeitskampf=[GLOSSAR[2],GLOSSAR[3],GLOSSAR[5]];
+  const extras=[GLOSSAR[4],GLOSSAR[6],GLOSSAR[8]];
+  return `
+  <div class="section-label">Kernbegriffe des Tarifrechts</div>
+  <div class="begriffs-grid">
+    ${kernbegriffe.map((b,i)=>renderBegriffCard(b,i,'k')).join('')}
+  </div>
+  <div class="section-label">Arbeitskampf</div>
+  <div class="begriffs-grid">
+    ${arbeitskampf.map((b,i)=>renderBegriffCard(b,i,'a')).join('')}
+  </div>
+  <div class="section-label">Weiteres</div>
+  <div class="begriffs-grid">
+    ${extras.map((b,i)=>renderBegriffCard(b,i,'e')).join('')}
+  </div>`;
+}
+
+function renderBegriffCard(b,i,prefix){
+  const id=prefix+'_'+i;
+  const open=G.begriffOpen===id;
+  return `<div class="begriff ${open?'expanded':''}" onclick="G.begriffOpen=G.begriffOpen==='${id}'?null:'${id}';render()">
+    <div class="begriff-word">${b.term}</div>
+    <div class="begrif-short" style="font-size:11px;color:var(--gray);line-height:1.3">${b.tag}</div>
+    <div class="begriff-detail" style="${open?'display:block':''}">
+      <div style="font-size:12px;line-height:1.65;color:var(--blue);margin-bottom:6px">${b.def}</div>
+      <div style="background:var(--cream);border-radius:4px;padding:7px 9px;font-size:11px;font-style:italic;margin-bottom:5px;color:var(--ink);line-height:1.5"><strong style="font-style:normal;color:var(--gray);font-size:10px">Beispiel:</strong> ${b.bsp}</div>
+      <div style="font-size:11px;color:var(--blue);line-height:1.5"><strong>↔ Zusammenhang:</strong> ${b.zusammenhang}</div>
+    </div>
+  </div>`;
+}
+
+function renderZusammenhaenge(){
+  return `
+  <div class="card card-blue" style="margin-bottom:10px">
+    <h3>Wie hängt das alles zusammen?</h3>
+    <div style="font-size:13px;line-height:1.8;color:var(--blue)">
+      <strong>Art. 9 Abs. 3 GG</strong> garantiert die Koalitionsfreiheit →
+      daraus folgt die <strong>Tarifautonomie</strong> →
+      Gewerkschaft + AG-Verband verhandeln einen <strong>Tarifvertrag</strong>.<br><br>
+      Während der Vertrag läuft: <strong>Friedenspflicht</strong> (kein Streik).<br>
+      Nach Ablauf und Scheitern: <strong>Warnstreik</strong> → <strong>Vollstreik</strong> (nach <strong>Urabstimmung 75 %</strong>).<br>
+      AG-Gegenmittel: <strong>Aussperrung</strong>.<br>
+      Blockade? → <strong>Schlichtung</strong>.<br>
+      Einigung gilt für alle (auch Nichtmitglieder), wenn <strong>allgemeinverbindlich</strong>.
+    </div>
+  </div>
+
+  <div class="section-label">Wichtige Gegensatzpaare</div>
+  <div class="card" style="margin-bottom:8px">
+    <table style="margin:0">
+      <thead><tr><th>Gewerkschaft</th><th>Arbeitgeberseite</th></tr></thead>
+      <tbody>
+        <tr><td>Streik</td><td>Aussperrung</td></tr>
+        <tr><td>Forderung</td><td>Angebot/Gegenangebot</td></tr>
+        <tr><td>Tarifvertrag</td><td>Hausvertrag (Einzelabschluss)</td></tr>
+        <tr><td>Warnstreik</td><td>Betriebsschließung (temp.)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-label">Reallohn verstehen</div>
+  <div class="card card-amber">
+    <div style="font-size:13px;line-height:1.7;color:var(--amber)">
+      <strong>Nominallohn:</strong> vereinbarte Lohnerhöhung in %<br>
+      <strong>Inflation:</strong> Preisanstieg in %<br>
+      <strong>Reallohn</strong> = Nominallohn − Inflation<br><br>
+      Beispiel: +3 % Lohn, +4,2 % Inflation → <strong style="color:var(--red)">−1,2 % Reallohn</strong><br>
+      → Kaufkraftverlust trotz Erhöhung!
+    </div>
+  </div>`;
+}
+
+function renderLernkarten(){
+  const karten=[
+    {f:'Wann darf eine Gewerkschaft streiken?',a:'Erst nachdem der alte Tarifvertrag abgelaufen ist (Friedenspflicht endet) und die Verhandlungen gescheitert sind. Vor einem Vollstreik braucht es eine Urabstimmung mit mind. 75 % Zustimmung.'},
+    {f:'Was ist der Unterschied zwischen Warnstreik und Vollstreik?',a:'Warnstreik: kurz (Stunden/1 Tag), während laufender Verhandlungen, als Drucksignal. Vollstreik: unbefristet, nach Scheitern aller Verhandlungen, erfordert 75 % Urabstimmungsergebnis.'},
+    {f:'Warum ist Tarifautonomie im Grundgesetz verankert?',a:'Um Gewerkschaften und AG-Verbände vor staatlichen Eingriffen zu schützen. Der Staat soll keine Löhne vorschreiben — das regeln die "Sozialpartner" eigenständig (Art. 9 Abs. 3 GG).'},
+    {f:'Was bedeutet Reallohn und warum ist er entscheidend?',a:'Reallohn = Nominallohn minus Inflation. Nur wenn der Lohn mehr steigt als die Preise, gewinnen Beschäftigte Kaufkraft. Bei hoher Inflation müssen Gewerkschaften mehr als die Inflationsrate fordern.'},
+  ];
+  const k=karten[G.lernkarteIdx||0];
+  return `
+  <div class="section-label">Lernkarte ${(G.lernkarteIdx||0)+1} / ${karten.length}</div>
+  <div class="lernkarte">
+    <div style="font-size:10px;color:rgba(249,246,240,.5);font-family:var(--sans);margin-bottom:8px">FRAGE</div>
+    <div class="lernkarte-frage">${k.f}</div>
+    ${G.lernkarteSide==='antwort'?`
+    <div class="lernkarte-antwort show">${k.a}</div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="lernkarte-btn" onclick="G.lernkarteSide='frage';G.lernkarteIdx=((G.lernkarteIdx||0)+1)%${karten.length};render()">Nächste →</button>
+    </div>
+    `:`
+    <button class="lernkarte-btn" onclick="G.lernkarteSide='antwort';render()">Antwort zeigen</button>
+    `}
+  </div>
+  <div style="display:flex;gap:6px;justify-content:center;margin-top:4px">
+    ${karten.map((_,i)=>`<div style="width:8px;height:8px;border-radius:50%;background:${i===(G.lernkarteIdx||0)?'var(--ink)':'var(--border)'};cursor:pointer" onclick="G.lernkarteIdx=${i};G.lernkarteSide='frage';render()"></div>`).join('')}
+  </div>`;
+}
+
+/* ════════════════════════════════════════════════════
+   QUIZ (vor & nach)
+════════════════════════════════════════════════════ */
+function startQuizVor(){
+  G.phaseIdx=1;
+  G.quizPhase='vor';
+  G.quizQueue=shuffle(FRAGEN.filter(f=>f.phase==='vor')).slice(0,3);
+  G.quizIdx=0; G.quizAnswered=false;
+  G.screen='quiz_vor';
+  render();
+}
+
+function startQuizNach(){
+  G.phaseIdx=4;
+  G.quizPhase='nach';
+  G.quizQueue=shuffle(FRAGEN.filter(f=>f.phase==='nach'||f.phase==='waehrend'));
+  G.quizIdx=0; G.quizAnswered=false;
+  G.screen='quiz_nach';
+  render();
+}
+
+function renderQuiz(phase){
+  const q=G.quizQueue[G.quizIdx];
+  if(!q) { if(phase==='vor'){goVerhandlung();return '';} else {G.screen='ergebnis';render();return '';} }
+  const total=G.quizQueue.length;
+  const pct=Math.round(G.quizIdx/total*100);
+  const letters=['A','B','C','D'];
+  return `
+  <div class="quiz-progress"><div class="quiz-progress-fill" style="width:${pct}%"></div></div>
+  <div class="quiz-meta">
+    <span class="quiz-counter">Frage ${G.quizIdx+1} von ${total}</span>
+    <span class="quiz-score">${G.score} Punkte</span>
+  </div>
+  <div class="quiz-tag">${q.kategorie}</div>
+  <div class="quiz-q">${q.frage}</div>
+  <div class="quiz-opts">
+    ${q.opts.map((o,i)=>{
+      let cls='quiz-opt';
+      if(G.quizAnswered){
+        if(i===q.r) cls+=' ok';
+        else if(i===G.lastChoice) cls+=' bad';
+        else cls+=' quiz-opt';
+      }
+      return `<button class="${cls}" ${G.quizAnswered?'disabled':''} onclick="answerQuiz(${i})">
+        <span class="quiz-opt-letter">${letters[i]}</span><span>${o}</span>
+      </button>`;
+    }).join('')}
+  </div>
+  ${G.quizAnswered?`
+  <div class="quiz-expl show">
+    <div class="quiz-expl-hed">${G.quizCorrect?'✓ Richtig!':'✗ Leider falsch.'}</div>
+    ${q.erklaerung}
+  </div>
+  <div class="quiz-connection show">
+    <strong>Zusammenhang:</strong> ${q.zusammenhang}
+  </div>
+  <button class="btn btn-ink" onclick="nextQuiz('${phase}')">${G.quizIdx+1<total?'Nächste Frage →':'Weiter →'}</button>
+  `:''}`;
+}
+
+function answerQuiz(i){
+  if(G.quizAnswered) return;
+  G.quizAnswered=true; G.lastChoice=i;
+  const q=G.quizQueue[G.quizIdx];
+  G.quizCorrect=i===q.r;
+  addScore(G.quizCorrect?10:3);
+  render();
+}
+
+function nextQuiz(phase){
+  G.quizIdx++;G.quizAnswered=false;
+  const q=G.quizQueue[G.quizIdx];
+  if(!q){
+    if(phase==='vor') goVerhandlung();
+    else { G.screen='ergebnis'; G.phaseIdx=4; render(); }
+    return;
+  }
+  render();
+}
+
+/* ════════════════════════════════════════════════════
+   VERHANDLUNG
+════════════════════════════════════════════════════ */
+function goVerhandlung(){
+  G.phaseIdx=2; G.screen='verhandlung';
+  G.verhandlungsRunde=0; G.letzteAktion=null;
+  G.gegenangebot=1.8+Math.random()*0.6;
+  G.dialoge=[];
+  G.inMidRound=false;
+  render();
+}
+
+function renderVerhandlung(){
+  G.phaseIdx=2;
+  const runde=G.verhandlungsRunde;
+  const lf=G.lohnForderung;
+  const ga=G.gegenangebot;
+  const diff=lf-ga;
+  const mitte=((lf+ga)/2);
+  const einigbar=diff<=3.0;
+  const quizWaehrend = G.quizWaehrendOffen;
+
+  if(quizWaehrend){
+    return renderQuizWaehrend();
+  }
+
+  let dialoge=G.dialoge||[];
+  if(runde===0 && dialoge.length===0){
+    dialoge=[
+      {side:'ag',text:`Wir bieten +${ga.toFixed(1)} %. Die wirtschaftliche Lage lässt mehr nicht zu.`},
+      {side:'gew',text:`Wir fordern +${lf.toFixed(1)} %. Die Inflation liegt bei 4,2 % — die Beschäftigten haben bereits Reallohnverluste erlitten.`},
+    ];
+    G.dialoge=dialoge;
+  }
+
+  return `
+  <h2>Verhandlungs­runde ${runde+1}</h2>
+
+  <div class="thermo-wrap">
+    <div class="section-label">Verhandlungsthermometer</div>
+    <div class="thermo-bar">
+      <div class="thermo-zone" style="left:${posThermo(ga)}%;width:${posThermo(lf)-posThermo(ga)}%"></div>
+      <div class="thermo-ag" style="left:${posThermo(ga)}%" title="AG-Angebot"></div>
+      <div class="thermo-gew" style="left:${posThermo(lf)}%" title="Deine Forderung"></div>
+    </div>
+    <div class="thermo-labels"><span>0 %</span><span>3 %</span><span>6 %</span><span>9 %</span><span>12 %</span></div>
+    <div class="thermo-legend">
+      <span><span class="thermo-leg-dot" style="background:var(--blue)"></span>Deine Forderung: +${lf.toFixed(1)} %</span>
+      <span><span class="thermo-leg-dot" style="background:var(--amber)"></span>AG-Angebot: +${ga.toFixed(1)} %</span>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat blue"><div class="stat-val">+${lf.toFixed(1)} %</div><div class="stat-label">Deine Forderung</div></div>
+    <div class="stat amber"><div class="stat-val">+${ga.toFixed(1)} %</div><div class="stat-label">AG-Angebot</div></div>
+    <div class="stat ${diff<=2?'green':'red'}"><div class="stat-val">${diff.toFixed(1)}</div><div class="stat-label">Abstand (%-Pkt.)</div></div>
+    <div class="stat ${mitte>=4.2?'green':'red'}"><div class="stat-val">${mitte.toFixed(1)} %</div><div class="stat-label">Möglicher Kompromiss</div></div>
+  </div>
+
+  ${einigbar?`<div class="rbox info">Die Positionen sind nah beieinander. Eine Einigung ist möglich.</div>`:''}
+  ${mitte<4.2?`<div class="rbox warn">Ein Abschluss auf Kompromisskurs (+${mitte.toFixed(1)} %) läge unter der Inflation (4,2 %) — Reallohnverlust!</div>`:''}
+
+  <div class="dialog" style="margin-bottom:10px">
+    ${dialoge.slice(-4).map(d=>renderBubble(d)).join('')}
+  </div>
+
+  <div class="section-label">Deine nächste Aktion</div>
+  <div class="action-grid">
+    ${VERHANDLUNGS_AKTIONEN.map(a=>`
+    <div class="action" onclick="doAktion('${a.id}')">
+      <span class="action-icon">${a.icon}</span>
+      <div class="action-name">${a.name}</div>
+      <div class="action-desc">${a.desc}</div>
+    </div>`).join('')}
+  </div>
+  <div class="action-grid" style="margin-top:0">
+    <div class="action action-full ${ga>=lf*0.82?'strat-ok':'strat-warn'}" onclick="doAktion('einigen')">
+      <div class="action-name">Einigung annehmen (+${ga.toFixed(1)} %)</div>
+      <div class="action-desc">Tarifvertrag zu diesen Bedingungen abschließen</div>
+      <div class="action-effect pill-${ga>=4.2?'green':'amber'}">${ga>=4.2?'Reallohnzuwachs':'Reallohnverlust: '+(ga-4.2).toFixed(1)+' %'}</div>
+    </div>
+    ${runde>=2?`<div class="action action-full strat-bad" onclick="doAktion('scheitern')">
+      <div class="action-name">Verhandlung abbrechen</div>
+      <div class="action-desc">→ Schlichtung oder Urabstimmung</div>
+    </div>`:``}
+  </div>`;
+}
+
+function posThermo(val){
+  return Math.min(98,Math.max(2,val/12*100));
+}
+
+function renderBubble(d){
+  const isGew=d.side==='gew';
+  return `<div class="bubble-row ${isGew?'':''}">
+    <div class="avatar ${isGew?'':'ag'}">${isGew?'✊':'💼'}</div>
+    <div>
+      <div class="bubble-name" style="padding-left:4px;margin-bottom:2px">${isGew?'Du (Gewerkschaft)':'AG-Vertreter'}</div>
+      <div class="bubble ${isGew?'bubble-gew':'bubble-ag'}">${d.text}</div>
+    </div>
+  </div>`;
+}
+
+function doAktion(id){
+  if(id==='einigen'){
+    G.finalDeal=G.gegenangebot;
+    G.phaseIdx=3; G.screen='abschluss'; render(); return;
+  }
+  if(id==='scheitern'){
+    G.scheitern=true; G.phaseIdx=3; G.screen='abschluss'; render(); return;
+  }
+  G.verhandlungsRunde++;
+  const a=VERHANDLUNGS_AKTIONEN.find(x=>x.id===id);
+  let dialoge=G.dialoge||[];
+  let agText='',gewText='',agNeu=G.gegenangebot;
+
+  if(id==='konzession'){
+    const s=Math.max(0.4,(G.lohnForderung-G.gegenangebot)*0.3);
+    G.lohnForderung=Math.max(G.gegenangebot+0.2,G.lohnForderung-s);
+    agNeu=Math.min(G.gegenangebot+0.25,G.lohnForderung-0.1);
+    gewText=`Wir gehen auf +${G.lohnForderung.toFixed(1)} % — das zeigt unsere Kompromissbereitschaft.`;
+    agText=`Wir schätzen das. Wir erhöhen auf +${agNeu.toFixed(1)} %.`;
+    addScore(6);
+  } else if(id==='sacharg'){
+    agNeu=Math.min(G.gegenangebot+0.5,G.lohnForderung*0.88);
+    gewText=`Produktivitätssteigerung +3,1 %, Unternehmensgewinn +18 %, Inflation 4,2 %. Unsere Forderung ist faktenbasiert.`;
+    agText=`Die Zahlen sind bekannt. Wir erhöhen auf +${agNeu.toFixed(1)} % — das ist unser verbessertes Angebot.`;
+    addScore(8);
+  } else if(id==='druck'){
+    agNeu=Math.min(G.gegenangebot+0.4,G.lohnForderung*0.85);
+    gewText=`Der Rückhalt unserer Mitglieder ist hoch. Bei Scheitern rufen wir zum Warnstreik auf.`;
+    agText=`Wir nehmen das zur Kenntnis. +${agNeu.toFixed(1)} % — aber mehr ist nicht möglich.`;
+    addScore(7);
+  } else if(id==='schlichtung'){
+    const komp=(G.lohnForderung+G.gegenangebot)/2;
+    agNeu=komp-0.15;
+    G.lohnForderung=komp+0.2;
+    gewText=`Wir schlagen eine Schlichtung vor. Eine neutrale Vermittlerin soll helfen.`;
+    agText=`Einverstanden. Die Schlichterin empfiehlt einen Kompromiss bei +${komp.toFixed(1)} %. Wir bieten +${agNeu.toFixed(1)} %.`;
+    addScore(7);
+  }
+  G.gegenangebot=agNeu;
+  dialoge.push({side:'gew',text:gewText},{side:'ag',text:agText});
+  G.dialoge=dialoge;
+
+  // Nach bestimmten Aktionen: Wissensfrage einblenden
+  if(G.verhandlungsRunde===2 && !G.quizWaehrendGetan){
+    G.quizWaehrendOffen=true;
+    G.quizWaehrendGetan=true;
+    G.quizQueue=shuffle(FRAGEN.filter(f=>f.phase==='waehrend'));
+    G.quizIdx=0; G.quizAnswered=false;
+  }
+
+  if(Math.abs(G.lohnForderung-G.gegenangebot)<0.35 || G.verhandlungsRunde>=6){
+    G.finalDeal=(G.lohnForderung+G.gegenangebot)/2;
+    G.phaseIdx=3; G.screen='abschluss'; render(); return;
+  }
+  render();
+}
+
+function renderQuizWaehrend(){
+  const q=G.quizQueue[G.quizIdx];
+  if(!q){G.quizWaehrendOffen=false;render();return '';}
+  const letters=['A','B','C','D'];
+  return `
+  <div class="card card-amber" style="margin-bottom:10px">
+    <h3>Kurze Lernpause!</h3>
+    <p style="margin:0">Bevor du weiterverhandelst — eine wichtige Frage:</p>
+  </div>
+  <div class="quiz-tag">${q.kategorie}</div>
+  <div class="quiz-q">${q.frage}</div>
+  <div class="quiz-opts">
+    ${q.opts.map((o,i)=>{
+      let cls='quiz-opt';
+      if(G.quizAnswered){if(i===q.r)cls+=' ok';else if(i===G.lastChoice)cls+=' bad';}
+      return `<button class="${cls}" ${G.quizAnswered?'disabled':''} onclick="answerQuizWaehrend(${i})">
+        <span class="quiz-opt-letter">${letters[i]}</span><span>${o}</span>
+      </button>`;
+    }).join('')}
+  </div>
+  ${G.quizAnswered?`
+  <div class="quiz-expl show">
+    <div class="quiz-expl-hed">${G.quizCorrect?'✓ Richtig!':'✗ Leider falsch.'}</div>
+    ${q.erklaerung}
+  </div>
+  <div class="quiz-connection show"><strong>Zusammenhang:</strong> ${q.zusammenhang}</div>
+  <button class="btn btn-ink" onclick="closeQuizWaehrend()">Zurück zur Verhandlung →</button>
+  `:''}`;
+}
+
+function answerQuizWaehrend(i){
+  if(G.quizAnswered)return;
+  G.quizAnswered=true;G.lastChoice=i;
+  G.quizCorrect=i===G.quizQueue[G.quizIdx].r;
+  addScore(G.quizCorrect?10:3);
+  render();
+}
+
+function closeQuizWaehrend(){
+  G.quizWaehrendOffen=false;G.quizAnswered=false;render();
+}
+
+/* ════════════════════════════════════════════════════
+   ABSCHLUSS
+════════════════════════════════════════════════════ */
+function renderAbschluss(){
+  G.phaseIdx=3;
+  const deal=G.finalDeal||0;
+  const real=(deal-4.2);
+  const scheitern=G.scheitern;
+  return `
+  <h2>${scheitern?'Verhandlung gescheitert':'Tarifabschluss'}</h2>
+
+  ${scheitern?`
+  <div class="rbox bad">Die Verhandlungen sind gescheitert. Was nun?</div>
+  <div class="card card-blue">
+    <h3>Was jetzt passiert — Ablauf im echten Tarifstreit</h3>
+    <div style="font-size:13px;line-height:1.8;color:var(--blue)">
+      1. <strong>Schlichtung:</strong> Beide Seiten einigen sich auf eine Schlichter/in.<br>
+      2. Schlichter macht Kompromissvorschlag — kann abgelehnt werden.<br>
+      3. Bei Ablehnung: <strong>Urabstimmung</strong> (mind. 75 % nötig für Streik).<br>
+      4. Streik → Druck → neue Verhandlung oder Einigung.<br>
+      5. Notfalls: Arbeitsgericht (selten bei Tarifkonflikten).
+    </div>
+  </div>
+  <div class="rbox warn">Reales Beispiel: Der Bahnstreik 2023/24. GDL und DB scheiterten mehrfach — nach Monaten und Schlichtungsanläufen kam schließlich ein Abschluss zustande.</div>
+  `:`
+  <div class="stats-row">
+    <div class="stat ${deal>=4.2?'green':'red'}"><div class="stat-val">+${deal.toFixed(1)} %</div><div class="stat-label">Lohnerhöhung</div></div>
+    <div class="stat ${real>=0?'green':'red'}"><div class="stat-val">${real>=0?'+':''}${real.toFixed(1)} %</div><div class="stat-label">Reallohn</div></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Kennzahl</th><th class="td-r">Ergebnis</th></tr></thead>
+    <tbody>
+      <tr><td>Nominale Lohnerhöhung</td><td class="td-r">+${deal.toFixed(1)} %</td></tr>
+      <tr><td>Inflation (Referenz)</td><td class="td-r">4,2 %</td></tr>
+      <tr><td><strong>Reallohneffekt</strong></td><td class="td-r ${real>=0?'td-green':'td-red'}">${real>=0?'+':''}${real.toFixed(1)} %</td></tr>
+      <tr><td>Laufzeit Tarifvertrag</td><td class="td-r">24 Monate</td></tr>
+      <tr><td>Mehrkosten AG (Schätzung)</td><td class="td-r">+${(deal*1.15).toFixed(1)} Mio. €</td></tr>
+    </tbody>
+  </table>
+
+  <div class="rbox ${real>=0?'ok':'warn'}">
+    ${real>=0
+      ? `Reallohnzuwachs von +${real.toFixed(1)} %! Die Beschäftigten gewinnen Kaufkraft zurück.`
+      : `Reallohnverlust von ${real.toFixed(1)} %. Trotz Erhöhung verlieren die Beschäftigten Kaufkraft. Beim nächsten Mal früher und stärker Druck aufbauen.`}
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <h3>Was bedeutet dieser Abschluss?</h3>
+    <div style="font-size:13px;line-height:1.65;color:var(--gray)">
+      Der vereinbarte Tarifvertrag gilt nun <strong>24 Monate</strong> für alle Beschäftigten der Mitgliedsbetriebe. Während dieser Zeit gilt die <strong>Friedenspflicht</strong> — kein Streik, keine Aussperrung. Erst nach Ablauf beginnt das Spiel von vorne.
+    </div>
+  </div>
+  `}
+
+  <button class="btn btn-ink" onclick="startQuizNach()">Abschlusslerncheck (${FRAGEN.filter(f=>f.phase==='nach'||f.phase==='waehrend').length} Fragen) →</button>`;
+}
+
+/* ════════════════════════════════════════════════════
+   ERGEBNIS
+════════════════════════════════════════════════════ */
+function renderErgebnis(){
+  G.phaseIdx=4;
+  const pct=G.maxScore>0?Math.round(G.score/G.maxScore*100):0;
+  const deal=G.finalDeal||0;
+  const real=deal-4.2;
+  let note,noteClass;
+  if(pct>=85){note='Sehr gut — du kennst das Tarifrecht!';noteClass='ok';}
+  else if(pct>=65){note='Gut — solides Grundwissen vorhanden.';noteClass='ok';}
+  else if(pct>=45){note='Befriedigend — noch Lücken zu schließen.';noteClass='warn';}
+  else{note='Noch Verbesserungsbedarf — nochmal durcharbeiten!';noteClass='bad';}
+
+  return `
+  <h2>Auswertung</h2>
+  <div class="stats-row">
+    <div class="stat blue"><div class="stat-val">${G.score}</div><div class="stat-label">Punkte gesamt</div></div>
+    <div class="stat ${pct>=65?'green':'red'}"><div class="stat-val">${pct} %</div><div class="stat-label">Richtigquote</div></div>
+  </div>
+  <div class="rbox ${noteClass}">${note}</div>
+
+  <div class="card" style="margin-bottom:12px">
+    <h3>Dein Tarifabschluss</h3>
+    ${G.scheitern?
+      '<div class="rbox bad" style="margin:0">Verhandlung gescheitert — in der Realität würde jetzt die Schlichtung folgen.</div>':
+      `<table style="margin:0">
+        <tr><td>Einigung</td><td class="td-r">+${deal.toFixed(1)} %</td></tr>
+        <tr><td>Reallohneffekt</td><td class="td-r ${real>=0?'td-green':'td-red'}">${real>=0?'+':''}${real.toFixed(1)} %</td></tr>
+      </table>`}
+  </div>
+
+  <div class="section-label">Was du gelernt hast — Zusammenfassung</div>
+  <div class="card card-blue">
+    <div style="font-size:13px;line-height:1.85;color:var(--blue)">
+      <strong>Art. 9 Abs. 3 GG</strong> → Tarifautonomie: Gewerkschaft + AG-Verband regeln eigenständig.<br>
+      <strong>Tarifvertrag</strong> → gilt kollektiv, enthält Lohn/Zeit/Urlaub-Mindestbedingungen.<br>
+      <strong>Friedenspflicht</strong> → kein Streik während laufendem TV.<br>
+      <strong>Warnstreik</strong> → kurz, Druckmittel; <strong>Vollstreik</strong> → nach 75 % Urabstimmung.<br>
+      <strong>Aussperrung</strong> → AG-Gegenmittel zum Streik (selten, umstritten).<br>
+      <strong>Schlichtung</strong> → neutrale Vermittlung bei Blockade.<br>
+      <strong>Reallohn</strong> = Nominallohn − Inflation → entscheidend für Kaufkraft.<br>
+      <strong>Allgemeinverbindlichkeit</strong> → TV gilt für alle Betriebe der Branche.
+    </div>
+  </div>
+
+  <div class="section-label">Begriffe als Übersicht</div>
+  <div style="margin-bottom:12px">
+    ${GLOSSAR.map(g=>`<span class="pill pill-blue" onclick="G.screen='glossar';G.glossarOpen=GLOSSAR.findIndex(x=>x.term==='${g.term}');render()" style="cursor:pointer">${g.term}</span>`).join('')}
+  </div>
+
+  <button class="btn btn-ink" onclick="G.screen='glossar';render()">Vollständiges Glossar ansehen</button>
+  <button class="btn btn-ghost" onclick="restart()">Nochmal spielen</button>`;
+}
+
+/* ════════════════════════════════════════════════════
+   VOLLGLOSSAR
+════════════════════════════════════════════════════ */
+function renderGlossar(){
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <h2 style="margin:0">Glossar Tarifrecht</h2>
+    <button style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--gray);cursor:pointer;font-family:var(--sans)" onclick="history.back?history.back():setScreen('ergebnis')">← Zurück</button>
+  </div>
+  <p>Tippe auf einen Begriff, um Definition, Beispiel und Zusammenhänge zu sehen.</p>
+  <div class="card" style="margin-bottom:0">
+    ${GLOSSAR.map((g,i)=>`
+    <div class="glossar-entry">
+      <div class="glossar-term" onclick="G.glossarOpen=G.glossarOpen===i?-1:i;render()">
+        <span>${g.term}</span>
+        <span class="glossar-term-tag">${g.tag}</span>
+      </div>
+      <div class="glossar-def ${G.glossarOpen===i?'open':''}">
+        <div style="font-size:13px;line-height:1.65;color:var(--gray);margin-bottom:6px">${g.def}</div>
+        <div class="glossar-bsp">${g.bsp}</div>
+        <div class="glossar-zusammenhang">${g.zusammenhang}</div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function restart(){
+  Object.assign(G,{screen:'start',score:0,maxScore:0,lohnForderung:6.0,gegenangebot:2.2,verhandlungsRunde:0,letzteAktion:null,finalDeal:null,scheitern:false,activeTab:'begriffe',glossarOpen:-1,lernkarteSide:'frage',lernkarteIdx:0,quizPhase:'vor',quizIdx:0,quizAnswered:false,quizCorrect:false,lastChoice:-1,quizQueue:[],phaseIdx:0,dialoge:[],quizWaehrendOffen:false,quizWaehrendGetan:false,begriffOpen:null});
+  render();
+}
+
+function attachAll(){
+  document.getElementById('mainbody').scrollTop=0;
+}
+
+render();
+</script>
+</body>
+</html>
