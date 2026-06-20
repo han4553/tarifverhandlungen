@@ -1031,7 +1031,7 @@ function renderGlossar(){
   <div class="card" style="margin-bottom:0">
     ${GLOSSAR.map((g,i)=>`
     <div class="glossar-entry">
-      <div class="glossar-term" onclick="G.glossarOpen=G.glossarOpen===i?-1:i;render()">
+      <div class="glossar-term" onclick="G.glossarOpen=G.glossarOpen===${i}?-1:${i};render()">
         <span>${g.term}</span>
         <span class="glossar-term-tag">${g.tag}</span>
       </div>
