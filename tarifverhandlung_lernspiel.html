@@ -29,6 +29,10 @@ body{font-family:var(--serif);color:var(--ink);overflow:hidden}
 .topbar-title{font-family:var(--display);font-size:18px;letter-spacing:2px}
 .topbar-score{font-family:var(--sans);font-size:12px;color:rgba(249,246,240,.6)}
 .topbar-score span{color:var(--paper);font-weight:500;font-size:14px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.btn-fullscreen{background:rgba(249,246,240,.12);border:1px solid rgba(249,246,240,.2);color:var(--paper);border-radius:5px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:background .15s;padding:0;flex-shrink:0}
+.btn-fullscreen:hover{background:rgba(249,246,240,.22)}
+.btn-fullscreen:active{transform:scale(.92)}
 
 /* ── PHASE STRIP ── */
 .phasestrip{display:flex;background:var(--cream);border-bottom:1px solid var(--border);flex-shrink:0;overflow:hidden}
@@ -226,7 +230,10 @@ tr:last-child td{border-bottom:none}
 <div class="app">
   <div class="topbar">
     <div class="topbar-title">TARIFVERHANDLUNG</div>
-    <div class="topbar-score">Punkte: <span id="score-disp">0</span></div>
+    <div class="topbar-right">
+      <div class="topbar-score">Punkte: <span id="score-disp">0</span></div>
+      <button class="btn-fullscreen" id="btn-fs" title="Vollbild" onclick="toggleFullscreen()">⛶</button>
+    </div>
   </div>
   <div id="phasestrip" class="phasestrip"></div>
   <div class="body" id="mainbody">
@@ -395,6 +402,7 @@ const VERHANDLUNGS_AKTIONEN = [
 ════════════════════════════════════════════════════ */
 const G = {
   screen:'start',
+  prevScreen:'start',
   score:0, maxScore:0,
   lohnForderung:6.0,
   gegenangebot:2.2,
@@ -417,7 +425,7 @@ const G = {
 
 const PHASE_NAMES = ['Vorbereitung','Lerncheck','Verhandlung','Abschluss','Auswertung'];
 
-function setScreen(s){ G.screen=s; render(); }
+function setScreen(s){ G.prevScreen=G.screen; G.screen=s; render(); }
 function addScore(n){ G.score+=n; G.maxScore+=10; animScore(); }
 function animScore(){ const el=document.getElementById('score-disp'); if(el){el.textContent=G.score; el.classList.add('score-pop'); setTimeout(()=>el.classList.remove('score-pop'),400);} }
 function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
@@ -484,7 +492,7 @@ function renderStart(){
   <div class="rbox info">Die Beschäftigten haben trotz des letzten Abschlusses real Kaufkraft verloren (2,8 % − 4,2 % = −1,4 %). Deine Aufgabe: diesmal echten Reallohnzuwachs erkämpfen.</div>
 
   <button class="btn btn-ink" onclick="goVorbereitung()">Zum Glossar &amp; Lerncheck</button>
-  <button class="btn btn-ghost" onclick="G.screen='glossar';render()">Nur Glossar ansehen</button>`;
+  <button class="btn btn-ghost" onclick="setScreen('glossar')">Nur Glossar ansehen</button>`;
 }
 
 /* ════════════════════════════════════════════════════
@@ -1003,10 +1011,10 @@ function renderErgebnis(){
 
   <div class="section-label">Begriffe als Übersicht</div>
   <div style="margin-bottom:12px">
-    ${GLOSSAR.map(g=>`<span class="pill pill-blue" onclick="G.screen='glossar';G.glossarOpen=GLOSSAR.findIndex(x=>x.term==='${g.term}');render()" style="cursor:pointer">${g.term}</span>`).join('')}
+    ${GLOSSAR.map(g=>`<span class="pill pill-blue" onclick="G.glossarOpen=GLOSSAR.findIndex(x=>x.term==='${g.term}');setScreen('glossar')" style="cursor:pointer">${g.term}</span>`).join('')}
   </div>
 
-  <button class="btn btn-ink" onclick="G.screen='glossar';render()">Vollständiges Glossar ansehen</button>
+  <button class="btn btn-ink" onclick="setScreen('glossar')">Vollständiges Glossar ansehen</button>
   <button class="btn btn-ghost" onclick="restart()">Nochmal spielen</button>`;
 }
 
@@ -1017,13 +1025,13 @@ function renderGlossar(){
   return `
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
     <h2 style="margin:0">Glossar Tarifrecht</h2>
-    <button style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--gray);cursor:pointer;font-family:var(--sans)" onclick="history.back?history.back():setScreen('ergebnis')">← Zurück</button>
+    <button style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--gray);cursor:pointer;font-family:var(--sans)" onclick="setScreen(G.prevScreen||'start')">← Zurück</button>
   </div>
   <p>Tippe auf einen Begriff, um Definition, Beispiel und Zusammenhänge zu sehen.</p>
   <div class="card" style="margin-bottom:0">
     ${GLOSSAR.map((g,i)=>`
     <div class="glossar-entry">
-      <div class="glossar-term" onclick="G.glossarOpen=G.glossarOpen===i?-1:i;render()">
+      <div class="glossar-term" onclick="G.glossarOpen=G.glossarOpen===${i}?-1:${i};render()">
         <span>${g.term}</span>
         <span class="glossar-term-tag">${g.tag}</span>
       </div>
@@ -1037,7 +1045,7 @@ function renderGlossar(){
 }
 
 function restart(){
-  Object.assign(G,{screen:'start',score:0,maxScore:0,lohnForderung:6.0,gegenangebot:2.2,verhandlungsRunde:0,letzteAktion:null,finalDeal:null,scheitern:false,activeTab:'begriffe',glossarOpen:-1,lernkarteSide:'frage',lernkarteIdx:0,quizPhase:'vor',quizIdx:0,quizAnswered:false,quizCorrect:false,lastChoice:-1,quizQueue:[],phaseIdx:0,dialoge:[],quizWaehrendOffen:false,quizWaehrendGetan:false,begriffOpen:null});
+  Object.assign(G,{screen:'start',prevScreen:'start',score:0,maxScore:0,lohnForderung:6.0,gegenangebot:2.2,verhandlungsRunde:0,letzteAktion:null,finalDeal:null,scheitern:false,activeTab:'begriffe',glossarOpen:-1,lernkarteSide:'frage',lernkarteIdx:0,quizPhase:'vor',quizIdx:0,quizAnswered:false,quizCorrect:false,lastChoice:-1,quizQueue:[],phaseIdx:0,dialoge:[],quizWaehrendOffen:false,quizWaehrendGetan:false,begriffOpen:null});
   render();
 }
 
@@ -1046,6 +1054,19 @@ function attachAll(){
 }
 
 render();
+
+function toggleFullscreen(){
+  const btn=document.getElementById('btn-fs');
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(()=>{});
+  } else {
+    document.exitFullscreen();
+  }
+}
+document.addEventListener('fullscreenchange',()=>{
+  const btn=document.getElementById('btn-fs');
+  if(btn) btn.textContent=document.fullscreenElement?'✕':'⛶';
+});
 </script>
 </body>
 </html>
