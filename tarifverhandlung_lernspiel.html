@@ -29,6 +29,10 @@ body{font-family:var(--serif);color:var(--ink);overflow:hidden}
 .topbar-title{font-family:var(--display);font-size:18px;letter-spacing:2px}
 .topbar-score{font-family:var(--sans);font-size:12px;color:rgba(249,246,240,.6)}
 .topbar-score span{color:var(--paper);font-weight:500;font-size:14px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.btn-fullscreen{background:rgba(249,246,240,.12);border:1px solid rgba(249,246,240,.2);color:var(--paper);border-radius:5px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:background .15s;padding:0;flex-shrink:0}
+.btn-fullscreen:hover{background:rgba(249,246,240,.22)}
+.btn-fullscreen:active{transform:scale(.92)}
 
 /* ── PHASE STRIP ── */
 .phasestrip{display:flex;background:var(--cream);border-bottom:1px solid var(--border);flex-shrink:0;overflow:hidden}
@@ -226,7 +230,10 @@ tr:last-child td{border-bottom:none}
 <div class="app">
   <div class="topbar">
     <div class="topbar-title">TARIFVERHANDLUNG</div>
-    <div class="topbar-score">Punkte: <span id="score-disp">0</span></div>
+    <div class="topbar-right">
+      <div class="topbar-score">Punkte: <span id="score-disp">0</span></div>
+      <button class="btn-fullscreen" id="btn-fs" title="Vollbild" onclick="toggleFullscreen()">⛶</button>
+    </div>
   </div>
   <div id="phasestrip" class="phasestrip"></div>
   <div class="body" id="mainbody">
@@ -1046,6 +1053,19 @@ function attachAll(){
 }
 
 render();
+
+function toggleFullscreen(){
+  const btn=document.getElementById('btn-fs');
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(()=>{});
+  } else {
+    document.exitFullscreen();
+  }
+}
+document.addEventListener('fullscreenchange',()=>{
+  const btn=document.getElementById('btn-fs');
+  if(btn) btn.textContent=document.fullscreenElement?'✕':'⛶';
+});
 </script>
 </body>
 </html>
