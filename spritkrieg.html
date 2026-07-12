@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SpritKrieg</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fuel:#E8A020;--fuel2:#F5C040;--ash:#0E0F18;--road:#1A1B28;
+  --card:#1E1F2C;--card2:#252636;--line:#2C2D40;--line2:#363748;
+  --text:#EEEEF8;--muted:#7070A0;--dim:#404060;
+  --green:#2ECC71;--red:#E74C3C;--blue:#3498DB;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+body{font-family:'DM Sans',sans-serif;background:var(--ash);color:var(--text);min-height:100svh;overflow-x:hidden}
+.screen{display:none;min-height:100svh;flex-direction:column;padding:20px 16px 32px}
+.screen.active{display:flex}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:4px;line-height:1;color:var(--fuel)}
+.logo b{color:var(--text)}
+.lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:5px;display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:14px;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--fuel);color:#111}
+.btn-ghost{background:none;border:1px solid var(--line2);color:var(--muted)}
+.btn-green{background:var(--green);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-sm{padding:9px 14px;font-size:13px;width:auto;border-radius:9px}
+.btn+.btn{margin-top:10px}
+input[type=text]{width:100%;padding:13px 15px;background:var(--road);border:1px solid var(--line);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:.2s}
+input:focus{border-color:var(--fuel)}
+.slider{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--line2);outline:none;cursor:pointer;margin:8px 0}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--fuel);border:3px solid var(--ash);box-shadow:0 2px 10px rgba(0,0,0,.6);cursor:pointer}
+.pr{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.pr:last-child{border-bottom:none}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sep{height:1px;background:var(--line);margin:12px 0}
+.lobby-code{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:10px;color:var(--fuel);text-align:center;background:var(--road);border:1px dashed var(--line2);border-radius:12px;padding:14px;cursor:pointer}
+/* GAME */
+#road-canvas{display:block;width:100%;height:195px;flex-shrink:0}
+#game-scroll{flex:1;overflow-y:auto;padding:12px 12px 80px}
+/* LIVE BADGE */
+.live-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.live-dot{width:9px;height:9px;border-radius:50%;background:var(--red);animation:blink .8s ease-in-out infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+/* CAPITAL */
+.capital-big{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:2px;color:var(--fuel);line-height:1;transition:.2s}
+.capital-big.earn{color:var(--green);transform:scale(1.05)}
+/* BUY SECTION */
+.buy-card{border-color:var(--line2)}
+.buy-card.urgent{border-color:var(--red);animation:pulse-red 1s ease-in-out infinite}
+@keyframes pulse-red{0%,100%{border-color:var(--red)}50%{border-color:#7B0000}}
+.tank-bar{height:14px;background:var(--line2);border-radius:7px;overflow:hidden;margin:6px 0}
+.tank-fill{height:100%;border-radius:7px;transition:.4s}
+/* BUY PILLS – instant tap */
+.buy-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:8px}
+.buy-pill{background:var(--card2);border:1.5px solid var(--line2);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+.buy-pill:active{background:var(--green);border-color:var(--green);transform:scale(.95)}
+.buy-pill .pl{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--text);letter-spacing:1px}
+.buy-pill .pc{font-size:10px;color:var(--muted);margin-top:1px}
+/* PRICE */
+.price-big{font-family:'Bebas Neue',sans-serif;font-size:64px;text-align:center;color:var(--fuel);line-height:1}
+/* MARKET CARDS */
+.mcard{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:11px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.mcard.me{border-color:var(--fuel)}
+.mcard.cheapest{border-color:var(--green)}
+/* STAT PILLS */
+.stat-row{display:flex;gap:8px;margin-bottom:10px}
+.sc{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.sv{font-family:'Bebas Neue',sans-serif;font-size:19px;margin-top:2px}
+.up{color:var(--green)}.dn{color:var(--red)}.gold{color:var(--fuel)}
+/* NEWS */
+.news{background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.2);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--fuel);margin-bottom:10px;line-height:1.5}
+/* AI */
+.ai-box{background:var(--road);border:1px solid var(--line);border-radius:9px;padding:12px;font-size:12px;color:var(--muted);line-height:1.65;min-height:40px}
+/* END BUTTON pinned */
+#end-btn-wrap{position:fixed;bottom:0;left:0;right:0;padding:12px 14px;background:linear-gradient(transparent,var(--ash) 30%);display:none}
+/* RESULT */
+.ri{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.ri:last-child{border-bottom:none}
+.rk{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0}
+.r1{background:rgba(232,160,32,.25);color:var(--fuel);border:1px solid var(--fuel)}
+.r2{background:rgba(52,152,219,.2);color:var(--blue);border:1px solid var(--blue)}
+.r3{background:rgba(46,204,113,.2);color:var(--green);border:1px solid var(--green)}
+.r4{background:var(--line);color:var(--muted)}
+.trophy{font-size:58px;text-align:center;animation:bounce .7s ease-in-out infinite alternate;margin:16px 0}
+@keyframes bounce{to{transform:translateY(-8px)}}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 18px;font-size:13px;z-index:9999;transition:.3s;max-width:280px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.6);pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+/* LOW TANK WARNING */
+.tank-warning{background:rgba(231,76,60,.12);border:1px solid var(--red);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--red);font-weight:600;text-align:center;margin-bottom:8px;display:none}
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div class="screen active" id="s-start">
+  <div style="margin:30px 0 24px"><div class="logo">Sprit<b>Krieg</b></div>
+    <div style="font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-top:4px">Echtzeit-Oligopol</div></div>
+  <div class="card"><div class="lbl">Gruppen-Name</div>
+    <input type="text" id="inp-name" placeholder="z.B. Shell-Team A" maxlength="20"></div>
+  <button class="btn btn-primary" onclick="goCreate()">⛽ Lobby erstellen</button>
+  <button class="btn" style="background:var(--card2);border:1px solid var(--line)" onclick="showScreen('s-join')">🔑 Lobby beitreten</button>
+  <div class="sep"></div>
+  <button class="btn btn-ghost" onclick="goSolo()">🤖 Gegen KI spielen</button>
+</div>
+
+<!-- JOIN -->
+<div class="screen" id="s-join">
+  <button class="btn btn-ghost btn-sm" onclick="showScreen('s-start')" style="width:auto;margin-bottom:20px">← Zurück</button>
+  <div class="logo" style="font-size:32px;margin-bottom:22px">Lobby<b>Code</b></div>
+  <div class="card"><div class="lbl">Code eingeben</div>
+    <input type="text" id="inp-code" placeholder="ABCDEF" maxlength="6"
+      style="font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:10px;text-align:center;text-transform:uppercase"></div>
+  <button class="btn btn-primary" onclick="joinLobby()">🚀 Beitreten</button>
+</div>
+
+<!-- LOBBY -->
+<div class="screen" id="s-lobby">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+    <div><div class="logo" style="font-size:28px">Warte<b>raum</b></div>
+      <div id="lobby-role" style="font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase">HOST</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="leaveLobby()">✕</button>
+  </div>
+  <div class="card" style="padding:12px 14px">
+    <div class="lbl">Code teilen (tippen zum Kopieren)</div>
+    <div class="lobby-code" id="lobby-code-el" onclick="copyCode()">------</div>
+  </div>
+  <div class="card" style="flex:1"><div class="lbl">Teams (<span id="lobby-count">0</span>/6)</div>
+    <div id="lobby-players"></div></div>
+  <button class="btn btn-primary" onclick="hostStart()">▶ Markt öffnen</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="s-game" style="padding:0">
+  <canvas id="road-canvas"></canvas>
+  <div id="game-scroll">
+
+    <!-- TOP ROW -->
+    <div class="live-row">
+      <div class="live-dot"></div>
+      <div style="font-size:11px;font-weight:600;color:var(--red);letter-spacing:1px">MARKT OFFEN</div>
+      <div style="margin-left:auto;text-align:right">
+        <div class="lbl" style="margin-bottom:0">Kapital</div>
+        <div class="capital-big" id="g-cap">10.000€</div>
+      </div>
+    </div>
+
+    <!-- NEWS -->
+    <div class="news" id="g-news">📰 Markt ist geöffnet – kaufe Sprit und setze deinen Preis!</div>
+
+    <!-- ═══ ROHÖL BÖRSEN-CHART ═══ -->
+    <div style="background:#060809;border:1px solid #1A2A1A;border-radius:12px;padding:10px 10px 5px;margin-bottom:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:4px">
+            <div style="width:7px;height:7px;border-radius:50%;background:#00CC66;animation:blink .8s ease-in-out infinite"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:#00AA55;letter-spacing:1px">ROHÖL / BRENT</span>
+          </div>
+          <span style="font-size:9px;color:#336633;letter-spacing:0.5px">LIVE</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:5px">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#00DD66;letter-spacing:1px" id="oil-price-big">1,42</span>
+          <span style="font-size:11px;color:#336633">€/L</span>
+          <span style="font-size:10px;padding:1px 5px;border-radius:4px;font-weight:600" id="oil-change-badge" style="background:rgba(0,204,102,.15);color:#00CC66">±0,00</span>
+        </div>
+      </div>
+      <canvas id="oil-chart" style="width:100%;height:120px;display:block"></canvas>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:#225522;margin-top:3px;padding:0 2px">
+        <span>← älter</span>
+        <span id="oil-stat-range">Heute</span>
+        <span>aktuell →</span>
+      </div>
+    </div>
+    <div class="card buy-card" id="buy-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="lbl" style="margin-bottom:0">Mein Tank</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1" id="g-inv">0 L</div>
+        </div>
+        <div style="text-align:right">
+          <div class="lbl" style="margin-bottom:0">Einkaufspreis</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--fuel)" id="g-bp">1,42 €/L</div>
+        </div>
+      </div>
+      <div class="tank-bar"><div class="tank-fill" id="g-tfill" style="width:0%"></div></div>
+
+      <!-- STORAGE COST ROW -->
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px;margin-bottom:2px">
+        <span style="color:var(--muted)">📦 Lagerkosten: <span id="g-storage-rate" style="color:var(--red);font-weight:600">0€/10s</span></span>
+        <span style="color:var(--muted)">Gesamt bezahlt: <span id="g-storage-total" style="color:var(--red)">0€</span></span>
+      </div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:4px">0,002 €/L alle 10s – weniger Lager = weniger Kosten</div>
+
+      <!-- LOW TANK WARNING -->
+      <div class="tank-warning" id="tank-warn">⚠️ Tank fast leer – jetzt nachkaufen!</div>
+
+      <!-- INSTANT BUY PILLS -->
+      <div class="lbl" style="margin-bottom:0">Sofort kaufen (1 Tipp = direkt im Lager)</div>
+      <div class="buy-grid">
+        <div class="buy-pill" onclick="instaBuy(500)">
+          <div class="pl">500 L</div>
+          <div class="pc" id="bc-500">710 €</div>
+        </div>
+        <div class="buy-pill" onclick="instaBuy(2000)">
+          <div class="pl">2.000 L</div>
+          <div class="pc" id="bc-2000">2.840 €</div>
+        </div>
+        <div class="buy-pill" onclick="instaBuy(5000)">
+          <div class="pl">5.000 L</div>
+          <div class="pc" id="bc-5000">7.100 €</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAT ROW -->
+    <div class="stat-row">
+      <div class="sc"><div class="lbl">Letzter Verkauf</div><div class="sv" id="g-last">–</div></div>
+      <div class="sc"><div class="lbl">Kunden</div><div class="sv gold" id="g-cnt">0</div></div>
+      <div class="sc"><div class="lbl">Marktanteil</div><div class="sv" id="g-share">–</div></div>
+    </div>
+
+    <!-- ═══ LIVE PREIS-CHART (Börsen-Style) ═══ -->
+    <div style="background:#070910;border:1px solid var(--line);border-radius:12px;padding:10px 10px 6px;margin-bottom:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink .8s ease-in-out infinite"></div>
+          <span style="font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase">Benzinpreise Live</span>
+        </div>
+        <div id="chart-legend" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end"></div>
+      </div>
+      <canvas id="price-chart" style="width:100%;height:140px;display:block"></canvas>
+    </div>
+
+    <!-- ═══ PREIS (immer sichtbar) ═══ -->
+    <div class="card">
+      <div class="lbl">Mein Verkaufspreis</div>
+      <div class="price-big" id="g-pval">1,59</div>
+      <input type="range" class="slider" id="g-pslider" min="100" max="280" value="159" oninput="onPrice(this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:-4px"><span>1,00 €</span><span>2,80 €</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:8px">
+        <span style="color:var(--muted)">Einkauf: <span id="g-bref" style="color:var(--text);font-weight:500">–</span></span>
+        <span>Marge: <span id="g-marg" style="font-weight:600">–</span></span>
+      </div>
+    </div>
+
+    <!-- KI TIP -->
+    <div class="card" style="padding:12px 14px">
+      <div class="lbl">🤖 KI-Marktberater</div>
+      <div class="ai-box" id="g-ai">Analysiere Marktlage…</div>
+    </div>
+
+    <!-- LIVE MARKT -->
+    <div class="lbl" style="margin-bottom:6px">Live Markt</div>
+    <div id="g-market"></div>
+
+  </div>
+
+  <!-- FIXED BOTTOM: Spiel beenden (host) / Rangliste -->
+  <div id="end-btn-wrap">
+    <button class="btn btn-red" id="btn-end" onclick="endGame()" style="display:none">🛑 Spiel beenden</button>
+    <button class="btn btn-ghost" onclick="endGame()" id="btn-end-guest" style="display:none">🏁 Ergebnis anzeigen</button>
+  </div>
+</div>
+
+<!-- QUIZ OVERLAY -->
+<div id="quiz-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;overflow-y:auto">
+  <div style="min-height:100%;background:linear-gradient(180deg,#050710 0%,#0A0F1E 100%);padding:24px 16px 40px;display:flex;flex-direction:column">
+
+    <!-- Topic badge + timer -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px" id="quiz-icon">📊</span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:2px;color:var(--muted);text-transform:uppercase" id="quiz-topic">Volkswirtschaft</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--fuel);line-height:1" id="quiz-timer">30</div>
+        <div style="width:32px;height:32px;position:relative">
+          <svg width="32" height="32" style="transform:rotate(-90deg)">
+            <circle cx="16" cy="16" r="13" fill="none" stroke="var(--line)" stroke-width="3"/>
+            <circle id="quiz-timer-ring" cx="16" cy="16" r="13" fill="none" stroke="var(--fuel)" stroke-width="3"
+              stroke-dasharray="81.7" stroke-dashoffset="0" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Market pause notice -->
+    <div style="background:rgba(232,160,32,.08);border:1px solid rgba(232,160,32,.2);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--fuel);text-align:center;margin-bottom:20px">
+      ⏸️ Markt pausiert – Diskutiert die Frage in der Klasse!
+    </div>
+
+    <!-- Event card -->
+    <div style="background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px" id="quiz-event-box" style="display:none">
+      <div style="font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Marktereignis</div>
+      <div style="font-size:13px;line-height:1.5" id="quiz-event-text">–</div>
+    </div>
+
+    <!-- Question -->
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.5px;line-height:1.2;color:var(--text);margin-bottom:20px;text-align:center;min-height:60px" id="quiz-question">
+      Frage wird geladen…
+    </div>
+
+    <!-- Answer options -->
+    <div id="quiz-options" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px"></div>
+
+    <!-- Explanation (hidden until answered) -->
+    <div id="quiz-explanation" style="display:none;border-radius:12px;padding:16px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px" id="quiz-result-label">–</div>
+      <div style="font-size:13px;line-height:1.65;color:var(--text)" id="quiz-explanation-text">–</div>
+    </div>
+
+    <!-- Continue button (hidden until answered or time up) -->
+    <button id="quiz-continue-btn" class="btn btn-primary" onclick="closeQuiz()" style="display:none;margin-top:auto">
+      ▶ Markt wieder öffnen
+    </button>
+
+    <!-- AI loading note -->
+    <div id="quiz-loading" style="text-align:center;color:var(--muted);font-size:12px;padding:20px 0">
+      🤖 Frage wird generiert…
+    </div>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div class="screen" id="s-final">
+  <div class="trophy">🏆</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--fuel);text-align:center;margin-bottom:4px" id="final-w">–</div>
+  <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:20px">SpritKrieg-Champion</div>
+  <div class="card"><div class="lbl">Endauswertung</div><div id="final-r"></div></div>
+  <div class="card"><div class="lbl">🤖 Spielanalyse</div><div class="ai-box" id="final-ai">Lade…</div></div>
+  <button class="btn btn-primary" style="margin-top:12px" onclick="showScreen('s-start')">🔄 Neues Spiel</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// CANVAS ANIMATION
+// ══════════════════════════════════════
+const C_FG=['#E8A020','#3498DB','#2ECC71','#E74C3C','#9B59B6','#E67E22'];
+const C_BG=['rgba(232,160,32,.22)','rgba(52,152,219,.22)','rgba(46,204,113,.22)','rgba(231,76,60,.22)','rgba(155,89,182,.22)','rgba(230,126,34,.22)'];
+const AVTS=['⛽','🚗','🏎','🚕','🚙','🛻'];
+const CAR_COLS=['#E74C3C','#3498DB','#2ECC71','#F39C12','#9B59B6','#ECF0F1','#E67E22','#1ABC9C'];
+const ROAD_Y=128;
+
+const A={el:null,ctx:null,W:480,H:195,dpr:1,frame:0,rafId:null,on:false,cars:[],stars:[],stX:[]};
+
+function initAnim(){
+  A.el=document.getElementById('road-canvas');if(!A.el)return;
+  A.dpr=Math.min(window.devicePixelRatio||1,2);
+  const r=A.el.getBoundingClientRect();A.W=Math.max(r.width||480,300);
+  A.el.width=Math.round(A.W*A.dpr);A.el.height=Math.round(A.H*A.dpr);
+  A.ctx=A.el.getContext('2d');A.ctx.scale(A.dpr,A.dpr);
+  A.stars=Array.from({length:30},()=>({x:Math.random()*A.W,y:Math.random()*110,r:.3+Math.random()*1.2,ph:Math.random()*Math.PI*2}));
+  if(!A.on){A.on=true;animLoop();}
+}
+function stopAnim(){A.on=false;if(A.rafId)cancelAnimationFrame(A.rafId);}
+function animLoop(){if(!A.on)return;A.frame++;drawScene();A.rafId=requestAnimationFrame(animLoop);}
+
+function drawScene(){
+  const{ctx,W,H,frame}=A;
+  ctx.fillStyle='#080C1A';ctx.fillRect(0,0,W,ROAD_Y);
+  A.stars.forEach(s=>{ctx.globalAlpha=.4+.6*Math.sin(frame*.025+s.ph);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();});
+  ctx.globalAlpha=1;
+  // moon
+  ctx.fillStyle='#EEE4B0';ctx.beginPath();ctx.arc(W-44,20,12,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#080C1A';ctx.beginPath();ctx.arc(W-39,17,10,0,Math.PI*2);ctx.fill();
+  // stations
+  const ps=G.players||[];const n=Math.max(ps.length,2);
+  A.stX=ps.map((_,i)=>(W/(n+1))*(i+1));
+  ps.forEach((p,i)=>drawStation(ctx,A.stX[i],ROAD_Y,p,i,ps));
+  // road
+  ctx.fillStyle='#1A1B28';ctx.fillRect(0,ROAD_Y-5,W,5);
+  ctx.fillStyle='#12121E';ctx.fillRect(0,ROAD_Y,W,H-ROAD_Y);
+  ctx.strokeStyle='#2A2A40';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,ROAD_Y);ctx.lineTo(W,ROAD_Y);ctx.stroke();
+  const lY=ROAD_Y+36;
+  ctx.strokeStyle='#CCCC00';ctx.lineWidth=1.5;ctx.setLineDash([16,13]);ctx.lineDashOffset=-(frame*1.8)%29;
+  ctx.beginPath();ctx.moveTo(0,lY);ctx.lineTo(W,lY);ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,ROAD_Y+65);ctx.lineTo(W,ROAD_Y+65);ctx.stroke();
+  // spawn & draw cars
+  if(frame%40===0&&A.cars.length<11)spawnCar();
+  A.cars=A.cars.filter(c=>c.x<W+80);
+  A.cars.forEach(c=>{updateCar(c);drawCar(ctx,c);});
+}
+
+function drawStation(ctx,x,y,player,idx,all){
+  const col=C_FG[idx]||'#E8A020',sw=50,sh=55;
+  ctx.globalAlpha=.25;ctx.fillStyle='#000';ctx.fillRect(x-sw/2+3,y-sh+3,sw,sh);ctx.globalAlpha=1;
+  ctx.fillStyle='#0E0F1A';ctx.fillRect(x-sw/2,y-sh,sw,sh);
+  ctx.fillStyle=col;ctx.fillRect(x-sw/2,y-sh,sw,4);
+  // canopy
+  ctx.globalAlpha=.85;ctx.fillStyle=col;ctx.fillRect(x-sw/2+2,y-18,sw+12,5);ctx.globalAlpha=1;
+  ctx.fillStyle='#777';ctx.fillRect(x+sw/2+8,y-13,2,13);
+  ctx.fillStyle='#202030';ctx.fillRect(x+sw/2+3,y-13,7,13);
+  // pump nozzle
+  ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x+sw/2+10,y-6);ctx.lineTo(x+sw/2+15,y-1);ctx.stroke();
+  // price sign
+  const pw=44,ph=20,px=x-pw/2,py=y-sh+7;
+  ctx.fillStyle='#060810';rrp(ctx,px,py,pw,ph,3);ctx.fill();
+  ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=.6+.4*Math.sin(A.frame*.04+idx*.8);
+  rrp(ctx,px,py,pw,ph,3);ctx.stroke();ctx.globalAlpha=1;
+  const price=player.price||0;
+  ctx.font='bold 11px monospace';ctx.textAlign='center';
+  ctx.fillStyle=price>0?col:'#444';
+  ctx.fillText(price>0?fmt(price)+' €':'? €',x,py+14);
+  // name
+  ctx.font='8px sans-serif';ctx.fillStyle='#555';ctx.textAlign='center';
+  ctx.fillText((player.name||'').slice(0,9),x,y-2);
+  // empty warning
+  if(player.inventory<=0){
+    ctx.fillStyle='rgba(231,76,60,.6)';ctx.font='bold 9px sans-serif';ctx.textAlign='center';
+    ctx.fillText('LEER',x,y-sh-8);
+  }
+  // streetlight
+  ctx.fillStyle='#555';ctx.fillRect(x-sw/2-9,y-sh-16,2,sh+16);
+  ctx.fillStyle='#1A1A2A';ctx.fillRect(x-sw/2-15,y-sh-16,8,3);
+  ctx.fillStyle='#FFFDE0';ctx.beginPath();ctx.arc(x-sw/2-11,y-sh-15,2.5,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.1;ctx.fillStyle='#FFFDE0';ctx.beginPath();ctx.arc(x-sw/2-11,y-sh-15,16,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  // cheapest ring
+  const vps=all.filter(p=>p.price>0&&p.inventory>0).map(p=>p.price);
+  if(vps.length&&Math.min(...vps)===price&&price>0&&player.inventory>0){
+    ctx.strokeStyle='#FFD700';ctx.lineWidth=2;ctx.globalAlpha=.3+.4*Math.sin(A.frame*.07);
+    rrp(ctx,x-sw/2-3,y-sh-3,sw+6,sh+6,4);ctx.stroke();ctx.globalAlpha=1;
+    ctx.fillStyle='#FFD700';ctx.font='bold 7px sans-serif';ctx.textAlign='center';ctx.fillText('💲GÜNSTIG',x,y-sh-7);
+  }
+}
+
+function rrp(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+const CAR_T=[{len:42,h:17,cX:.22,cW:.54,cH:.55},{len:48,h:21,cX:.18,cW:.64,cH:.52},{len:44,h:14,cX:.28,cW:.44,cH:.58}];
+function spawnCar(){
+  const t=CAR_T[0|Math.random()*3],spd=1.4+Math.random()*1.8,lane=Math.random()<.5?0:1;
+  const car={x:-70,y:ROAD_Y+(lane===0?14:48),spd,col:CAR_COLS[0|Math.random()*CAR_COLS.length],
+    len:t.len,h:t.h,cX:t.cX,cW:t.cW,cH:t.cH,lane,state:'drive',stTgt:null,parkT:0};
+  if(G.players&&G.players.length>0&&Math.random()<.55){
+    const ps=G.players,prs=ps.map(p=>(p.price>0&&p.inventory>0)?p.price:99);
+    const mn=Math.min(...prs);if(mn>=99){A.cars.push(car);return;}
+    const wts=prs.map(p=>p<99?Math.pow(mn/p,3):0),tot=wts.reduce((a,b)=>a+b,0);
+    let rr=Math.random()*tot,ch=0;
+    for(let i=0;i<wts.length;i++){rr-=wts[i];if(rr<=0){ch=i;break;}}
+    car.stTgt=ch;
+  }
+  A.cars.push(car);
+}
+function updateCar(c){
+  if(c.state==='drive'){c.x+=c.spd;
+    if(c.stTgt!==null&&A.stX[c.stTgt]&&A.stX[c.stTgt]-c.x<25&&A.stX[c.stTgt]-c.x>0){c.state='park';c.targY=ROAD_Y-4;}
+  }else if(c.state==='park'){c.x+=c.spd*.4;c.y-=1.5;if(c.y<=c.targY){c.y=c.targY;c.state='idle';c.parkT=0;}}
+  else if(c.state==='idle'){c.parkT++;if(c.parkT>75){c.state='leave';}}
+  else if(c.state==='leave'){c.y+=1.6;c.x+=c.spd;const ry=ROAD_Y+(c.lane===0?14:48);if(c.y>=ry){c.y=ry;c.state='drive';c.stTgt=null;}}
+}
+function drawCar(ctx,car){
+  const{x,y,len,h,col,cX,cW,cH}=car;
+  ctx.globalAlpha=.18;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x+len/2,y+h+2,len*.4,3,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  ctx.fillStyle=col;rrp(ctx,x,y+h*.28,len,h*.72,3);ctx.fill();
+  ctx.fillStyle=dk(col,25);rrp(ctx,x+len*cX,y,len*cW,h*cH+h*.28,3);ctx.fill();
+  ctx.globalAlpha=.5;ctx.fillStyle='#88CCFF';
+  const mx=x+len*(cX+cW*.5);
+  rrp(ctx,x+len*cX+3,y+3,mx-x-len*cX-5,h*cH-5,2);ctx.fill();
+  rrp(ctx,mx+2,y+3,x+len*(cX+cW)-mx-5,h*cH-5,2);ctx.fill();ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(255,255,180,.95)';rrp(ctx,x+len-3,y+h*.42,4,h*.18,1);ctx.fill();
+  ctx.globalAlpha=.08;ctx.fillStyle='#FFFF80';ctx.beginPath();ctx.ellipse(x+len+10,y+h*.51,14,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(210,30,30,.9)';rrp(ctx,x-1,y+h*.42,4,h*.18,1);ctx.fill();
+  const wr=h*.36;
+  [x+len*.2,x+len*.76].forEach(wx=>{const wy=y+h+h*.12;
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(wx,wy,wr,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3A3A4A';ctx.beginPath();ctx.arc(wx,wy,wr*.55,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#BBBBCC';ctx.beginPath();ctx.arc(wx,wy,wr*.18,0,Math.PI*2);ctx.fill();
+  });
+}
+function dk(hex,a){let n=parseInt(hex.replace('#',''),16);const r=Math.max(0,(n>>16)-a),g=Math.max(0,((n>>8)&0xff)-a),b=Math.max(0,(n&0xff)-a);return'#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');}
+
+// ══════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════
+const AI_NAMES=['TotalDiscount','Hank Tank','Shell Rival','OMV Neo'];
+const EVENTS=[
+  {t:'🛢️ OPEC erhöht Produktion – Rohölpreise fallen.',d:-.06},{t:'🔥 Raffinerie-Störung – Engpässe möglich!',d:+.08},
+  {t:'🌡️ Hitzewelle: Reiseboom – Nachfrage steigt!',d:+.03},{t:'❄️ Wintereinbruch – Benzin-Nachfrage sinkt.',d:-.03},
+  {t:'💰 Energiesteuersenkung beschlossen!',d:-.07},{t:'🎉 Stadtfest – Rekordbesucher!',d:0},
+  {t:'🌍 Nahost-Krise – Ölpreis springt!',d:+.11},{t:'📦 Neue Pipeline – Versorgung gesichert.',d:-.05},
+  {t:'⚡ E-Auto-Boom – Benzin-Nachfrage sinkt leicht.',d:-.02},{t:'🚧 Baustelle B31 – Umleitung!',d:0},
+];
+
+const G={
+  myName:'',myIdx:0,isHost:false,isSolo:false,lobbyCode:'',
+  gameOn:false,
+  buyPrice:1.42,myCapital:10000,myInv:0,myPrice:1.59,
+  myCnt:0,myLastProfit:0,myTotalRev:0,myStorageCosts:0,
+  rawOilHist:[],  // [{t, p}] – Rohöl-Preisverlauf
+  players:[],
+  custIv:null,newsIv:null,aiIv:null,syncIv:null,storageIv:null,oilIv:null,
+};
+
+// ══════════════════════════════════════
+// UTIL
+// ══════════════════════════════════════
+function eur(n){const abs=Math.abs(Math.round(n));const s=abs.toLocaleString('de-DE')+'€';return n<0?'-'+s:s;}
+function fmt(n){return Number(n).toFixed(2).replace('.',',');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+let toT;
+function toast(m,ms=2400){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(toT);toT=setTimeout(()=>el.classList.remove('show'),ms);}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+const lk=()=>'sk_'+G.lobbyCode;
+const saveLobby=d=>{try{localStorage.setItem(lk(),JSON.stringify(d))}catch(e){}};
+const loadLobby=()=>{try{return JSON.parse(localStorage.getItem(lk())||'null')}catch(e){return null}};
+function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>c[0|Math.random()*c.length]).join('');}
+function getName(){return(document.getElementById('inp-name').value.trim()||'Team Anonym');}
+
+// ══════════════════════════════════════
+// LOBBY
+// ══════════════════════════════════════
+function goCreate(){
+  G.myName=getName();G.myIdx=0;G.isHost=true;G.isSolo=false;G.lobbyCode=genCode();
+  const d={code:G.lobbyCode,players:[{name:G.myName,idx:0,isHost:true}],phase:'lobby'};
+  saveLobby(d);openLobby(d);
+}
+function joinLobby(){
+  const code=document.getElementById('inp-code').value.trim().toUpperCase();
+  if(code.length!==6){toast('6-stelligen Code eingeben');return;}
+  G.lobbyCode=code;const d=loadLobby();
+  if(!d){toast('Lobby nicht gefunden!');return;}
+  if(d.phase!=='lobby'){toast('Spiel läuft bereits!');return;}
+  if(d.players.length>=6){toast('Lobby voll!');return;}
+  G.myName=getName();G.myIdx=d.players.length;G.isHost=false;G.isSolo=false;
+  d.players.push({name:G.myName,idx:G.myIdx,isHost:false});saveLobby(d);openLobby(d);
+}
+function openLobby(d){
+  document.getElementById('lobby-code-el').textContent=G.lobbyCode;
+  document.getElementById('lobby-role').textContent=G.isHost?'HOST':'GAST';
+  renderLP(d.players);showScreen('s-lobby');startLobbyPoll();
+}
+let lpoll=null;
+function startLobbyPoll(){
+  if(lpoll)clearInterval(lpoll);
+  lpoll=setInterval(()=>{
+    const d=loadLobby();if(!d)return;
+    renderLP(d.players);
+    if(d.phase==='live'){clearInterval(lpoll);lpoll=null;
+      G.players=d.players.map(p=>mkP(p));startGame();}
+    if(d.phase==='ended'&&G.gameOn){clearInterval(lpoll);lpoll=null;syncFromLobby();showFinal();}
+  },1200);
+}
+function renderLP(ps){
+  document.getElementById('lobby-count').textContent=ps.length;
+  document.getElementById('lobby-players').innerHTML=ps.map((p,i)=>`
+    <div class="pr">
+      <div class="av" style="background:${C_BG[i]};color:${C_FG[i]}">${AVTS[i]}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${esc(p.name)}</div>
+      <div style="font-size:11px;color:var(--muted)">${p.isHost?'Host':'Bereit'}</div></div>
+    </div>`).join('');
+}
+function hostStart(){
+  const d=loadLobby();if(!d)return;
+  G.players=d.players.map(p=>mkP(p));
+  const need=Math.max(0,4-G.players.length);
+  for(let i=0;i<need;i++)G.players.push(mkAI(G.players.length,i));
+  d.phase='live';d.players=G.players;saveLobby(d);
+  clearInterval(lpoll);lpoll=null;startGame();
+}
+function goSolo(){
+  G.myName=getName();G.myIdx=0;G.isHost=true;G.isSolo=true;G.lobbyCode=genCode();
+  G.players=[mkP({name:G.myName,idx:0}),mkAI(1,0),mkAI(2,1),mkAI(3,2)];
+  startGame();
+}
+function mkP(p){return{...p,capital:10000,inventory:0,price:1.59,avgBuyCost:1.42,cnt:0,totalRev:0,storageCosts:0,isAI:false};}
+function mkAI(idx,i){return{name:AI_NAMES[i%4],idx,capital:10000,inventory:0,price:+(1.45+Math.random()*.2).toFixed(2),avgBuyCost:1.42,cnt:0,totalRev:0,storageCosts:0,isAI:true,isHost:false};}
+function leaveLobby(){if(lpoll){clearInterval(lpoll);lpoll=null;}showScreen('s-start');}
+function copyCode(){navigator.clipboard?.writeText(G.lobbyCode);toast('Code kopiert: '+G.lobbyCode);}
+
+// ══════════════════════════════════════
+// GAME START
+// ══════════════════════════════════════
+function startGame(){
+  G.gameOn=true;G.buyPrice=1.42;G.myCapital=10000;G.myInv=0;G.myPrice=1.59;
+  G.myCnt=0;G.myLastProfit=0;G.myTotalRev=0;G.myStorageCosts=0;
+
+  // AI buys initial stock
+  if(G.isSolo)aiInit();
+
+  // Init UI
+  updateBuyCosts();
+  document.getElementById('g-pslider').value=159;
+  onPrice(159);
+  updateGameUI();
+  renderMarket();
+
+  // show end button for host
+  document.getElementById('end-btn-wrap').style.display='block';
+  document.getElementById('btn-end').style.display=G.isHost?'flex':'none';
+  document.getElementById('btn-end-guest').style.display=G.isHost?'none':'flex';
+
+  showScreen('s-game');
+  setTimeout(()=>{initAnim();initChart();initOilChart();},80);
+
+  // Record oil price every 15s (for smooth baseline even without news)
+  G.oilIv=setInterval(()=>{if(G.gameOn)recordOilPrice();},15000);
+  // Record player prices every 6s for smooth chart
+  CH.chartIv=setInterval(()=>{if(G.gameOn)recordPrices();},6000);
+
+  // Customer every 4s (first after 10s so players can buy first)
+  setTimeout(()=>{
+    customerEvent();
+    G.custIv=setInterval(customerEvent,4000);
+  },10000);
+
+  // Wholesale price / news + QUIZ every 60s
+  G.newsIv=setInterval(()=>{
+    if(!G.gameOn)return;
+    const ev=EVENTS[0|Math.random()*EVENTS.length];
+    // Show pedagogical question FIRST, then apply price change after quiz
+    showQuiz(ev);
+  },60000);
+
+  // AI adjusts every 10s
+  G.aiIv=setInterval(aiTick,10000);
+
+  // Storage costs every 10s (0,002 €/L)
+  G.storageIv=setInterval(storageTick,10000);
+
+  // Multiplayer sync every 2s
+  if(!G.isSolo){
+    G.syncIv=setInterval(()=>{
+      syncToLobby();
+      const d=loadLobby();
+      if(d&&d.phase==='ended'&&G.gameOn){clearAllIntervals();showFinal();}
+      if(d&&d.players){
+        d.players.forEach((p,i)=>{if(G.players[i]&&p.idx!==G.myIdx)Object.assign(G.players[i],{capital:p.capital,inventory:p.inventory,price:p.price,cnt:p.cnt||0,totalRev:p.totalRev||0});});
+        renderMarket();
+      }
+    },2000);
+  }
+
+  loadAITip();
+}
+
+function syncToLobby(){
+  const d=loadLobby();if(!d)return;
+  const me={capital:G.myCapital,inventory:G.myInv,price:G.myPrice,cnt:G.myCnt,totalRev:G.myTotalRev,avgBuyCost:G.buyPrice};
+  if(d.players[G.myIdx])Object.assign(d.players[G.myIdx],me);
+  saveLobby(d);
+}
+function syncFromLobby(){
+  const d=loadLobby();if(!d)return;
+  if(d.players)d.players.forEach((p,i)=>{if(G.players[i])Object.assign(G.players[i],p);});
+  G.myCapital=G.players[G.myIdx]?.capital||G.myCapital;
+}
+function clearAllIntervals(){
+  G.gameOn=false;
+  clearInterval(G.custIv);clearInterval(G.newsIv);clearInterval(G.aiIv);
+  clearInterval(G.syncIv);clearInterval(G.storageIv);
+  clearInterval(CH.chartIv);clearInterval(G.oilIv);
+}
+
+// ══════════════════════════════════════
+// STORAGE COSTS (0,002 €/L alle 10s)
+// ══════════════════════════════════════
+const STORAGE_RATE=0.002; // €/L pro 10s
+function storageTick(){
+  if(!G.gameOn)return;
+  G.players.forEach(p=>{
+    if(p.inventory<=0)return;
+    const cost=+(p.inventory*STORAGE_RATE).toFixed(2);
+    p.capital=+(p.capital-cost).toFixed(2);
+    p.storageCosts=+((p.storageCosts||0)+cost).toFixed(2);
+    if(p.idx===G.myIdx){
+      G.myCapital=p.capital;
+      G.myStorageCosts=+(G.myStorageCosts+cost).toFixed(2);
+    }
+  });
+  // Update UI
+  document.getElementById('g-cap').textContent=eur(G.myCapital);
+  document.getElementById('g-storage-total').textContent=eur(G.myStorageCosts);
+  const rate=+(G.myInv*STORAGE_RATE).toFixed(2);
+  document.getElementById('g-storage-rate').textContent=eur(rate)+'/10s';
+  renderMarket();
+  if(!G.isSolo)syncToLobby();
+}
+
+// ══════════════════════════════════════
+// INSTANT BUY (one tap)
+// ══════════════════════════════════════
+function instaBuy(n){
+  if(!G.gameOn)return;
+  const cost=+(n*G.buyPrice).toFixed(2);
+  if(cost>G.myCapital){toast('❌ Nicht genug Kapital!');return;}
+  if(G.myInv+n>10000){const space=10000-G.myInv;if(space<=0){toast('Tank voll!');return;}
+    const adj=Math.floor(space/100)*100;if(adj<=0){toast('Tank fast voll!');return;}
+    const ac=+(adj*G.buyPrice).toFixed(2);G.myCapital=+(G.myCapital-ac).toFixed(2);G.myInv+=adj;
+    G.players[G.myIdx].capital=G.myCapital;G.players[G.myIdx].inventory=G.myInv;G.players[G.myIdx].avgBuyCost=G.buyPrice;
+    toast(`✅ ${adj.toLocaleString('de-DE')} L gekauft – ${eur(ac)}`);updateGameUI();return;
+  }
+  G.myCapital=+(G.myCapital-cost).toFixed(2);G.myInv+=n;
+  G.players[G.myIdx].capital=G.myCapital;G.players[G.myIdx].inventory=G.myInv;G.players[G.myIdx].avgBuyCost=G.buyPrice;
+  toast(`✅ ${n.toLocaleString('de-DE')} L – ${eur(cost)}`);
+  updateGameUI();renderMarket();
+}
+
+function updateBuyCosts(){
+  [500,2000,5000].forEach(n=>{
+    const el=document.getElementById('bc-'+n);
+    if(el)el.textContent=eur(+(n*G.buyPrice).toFixed(2));
+  });
+}
+
+// ══════════════════════════════════════
+// PRICE CONTROL (live, no confirm)
+// ══════════════════════════════════════
+let pDebounce=null;
+function onPrice(v){
+  v=parseInt(v)||159;G.myPrice=v/100;
+  document.getElementById('g-pval').textContent=fmt(G.myPrice);
+  const pct=((v-100)/(280-100))*100;
+  document.getElementById('g-pslider').style.background=`linear-gradient(to right,var(--fuel) ${pct}%,var(--line2) ${pct}%)`;
+  updateMarginDisp();
+  clearTimeout(pDebounce);
+  pDebounce=setTimeout(()=>{G.players[G.myIdx].price=G.myPrice;renderMarket();recordPrices();},600);
+}
+function updateMarginDisp(){
+  const mg=+(G.myPrice-G.buyPrice).toFixed(3);
+  document.getElementById('g-bref').textContent=fmt(G.buyPrice)+' €/L';
+  const el=document.getElementById('g-marg');
+  el.textContent=(mg>=0?'+':'')+fmt(mg)+' €/L';el.style.color=mg>=0?'var(--green)':'var(--red)';
+}
+
+// ══════════════════════════════════════
+// CUSTOMER EVENT
+// ══════════════════════════════════════
+function customerEvent(){
+  if(!G.gameOn)return;
+  const demand=300,ps=G.players;
+  const active=ps.filter(p=>p.inventory>=50);
+  if(active.length===0)return;
+  const mn=Math.min(...active.map(p=>p.price));
+  const wts=active.map(p=>Math.pow(mn/p.price,3)*(0.8+Math.random()*.4));
+  const tot=wts.reduce((a,b)=>a+b,0);
+  let rr=Math.random()*tot,chosen=active[0];
+  for(let i=0;i<active.length;i++){rr-=wts[i];if(rr<=0){chosen=active[i];break;}}
+  const sold=Math.min(demand,chosen.inventory);
+  const rev=+(sold*chosen.price).toFixed(2);
+  const procCost=+(sold*(chosen.avgBuyCost||G.buyPrice)).toFixed(2);
+  const profit=+(rev-procCost).toFixed(2);
+  chosen.inventory-=sold;chosen.capital=+(chosen.capital+profit).toFixed(2);
+  chosen.cnt=(chosen.cnt||0)+1;chosen.totalRev=(chosen.totalRev||0)+rev;
+  if(chosen.idx===G.myIdx){
+    G.myCapital=chosen.capital;G.myInv=chosen.inventory;
+    G.myCnt=chosen.cnt;G.myLastProfit=profit;G.myTotalRev=chosen.totalRev;
+    // flash
+    const el=document.getElementById('g-cap');
+    el.textContent=eur(G.myCapital);
+    el.classList.remove('earn');void el.offsetWidth;el.classList.add('earn');
+    setTimeout(()=>el.classList.remove('earn'),400);
+    document.getElementById('g-last').textContent=eur(profit);
+    document.getElementById('g-last').style.color=profit>=0?'var(--green)':'var(--red)';
+    document.getElementById('g-cnt').textContent=G.myCnt;
+  }
+  updateGameUI();renderMarket();recordPrices();
+  if(!G.isSolo)syncToLobby();
+}
+
+// ══════════════════════════════════════
+// UI UPDATE
+// ══════════════════════════════════════
+function updateGameUI(){
+  document.getElementById('g-cap').textContent=eur(G.myCapital);
+  const pct=Math.round((G.myInv/10000)*100);
+  document.getElementById('g-inv').textContent=G.myInv.toLocaleString('de-DE')+' L';
+  const bar=document.getElementById('g-tfill');
+  bar.style.width=pct+'%';
+  bar.style.background=pct<15?'linear-gradient(90deg,#7B0000,var(--red))':pct<35?'linear-gradient(90deg,#8B4500,#E67E22)':'linear-gradient(90deg,#1A6B38,var(--green))';
+  // tank warnings
+  const warn=document.getElementById('tank-warn');
+  const buyCard=document.getElementById('buy-card');
+  if(G.myInv<=0){warn.textContent='🚨 TANK LEER – Keine Kunden bis zum Nachkaufen!';warn.style.display='block';buyCard.classList.add('urgent');}
+  else if(G.myInv<800){warn.textContent='⚠️ Tank fast leer – jetzt nachkaufen!';warn.style.display='block';buyCard.classList.add('urgent');}
+  else{warn.style.display='none';buyCard.classList.remove('urgent');}
+  // share
+  const tot=G.players.reduce((s,p)=>s+(p.cnt||0),0)||1;
+  const sh=Math.round(((G.players[G.myIdx].cnt||0)/tot)*100);
+  document.getElementById('g-share').textContent=sh+'%';
+  document.getElementById('g-bp').textContent=fmt(G.buyPrice)+' €/L';
+  updateBuyCosts();updateMarginDisp();
+  const rate=+(G.myInv*STORAGE_RATE).toFixed(2);
+  const rateEl=document.getElementById('g-storage-rate');
+  if(rateEl)rateEl.textContent=eur(rate)+'/10s';
+  const totEl=document.getElementById('g-storage-total');
+  if(totEl)totEl.textContent=eur(G.myStorageCosts);
+}
+
+function renderMarket(){
+  const ps=G.players;
+  const active=ps.filter(p=>p.price>0&&p.inventory>0);
+  const mn=active.length?Math.min(...active.map(p=>p.price)):0;
+  document.getElementById('g-market').innerHTML=ps.map((p,i)=>{
+    const isMe=p.idx===G.myIdx,isCheap=p.price===mn&&mn>0&&p.inventory>0;
+    const pct=Math.round((p.inventory/10000)*100);
+    return`<div class="mcard ${isMe?'me':''} ${isCheap&&!isMe?'cheapest':''}">
+      <div style="width:30px;height:30px;border-radius:50%;background:${C_BG[i]};color:${C_FG[i]};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${AVTS[i]}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:500">${esc(p.name)}${isMe?' (Du)':''}${isCheap?' 💲':''} ${p.inventory<=0?'<span style="color:var(--red);font-size:10px">LEER</span>':''}</div>
+        <div style="height:4px;background:var(--line2);border-radius:2px;margin:4px 0"><div style="height:100%;width:${pct}%;background:${C_FG[i]};border-radius:2px;transition:.3s"></div></div>
+        <div style="font-size:10px;color:var(--muted)">${p.inventory.toLocaleString('de-DE')} L · ${p.cnt||0} Kunden · ${eur(p.capital)}</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${isCheap?'var(--green)':p.inventory<=0?'var(--red)':'var(--text)'}">${fmt(p.price)}<span style="font-size:12px;color:var(--muted)"> €</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+// AI
+// ══════════════════════════════════════
+function aiInit(){
+  G.players.forEach(p=>{
+    if(!p.isAI)return;
+    const bl=2000+Math.floor(Math.random()*4000/100)*100;
+    const c=+(bl*G.buyPrice).toFixed(2);p.capital-=c;p.inventory+=bl;p.avgBuyCost=G.buyPrice;
+  });
+}
+function aiTick(){
+  if(!G.gameOn)return;
+  G.players.forEach(p=>{
+    if(!p.isAI)return;
+    if(p.inventory<1200&&p.capital>G.buyPrice*2500){
+      const bl=Math.min(4000,Math.floor(p.capital/(G.buyPrice*1.1)/100)*100);
+      if(bl>0){const c=+(bl*G.buyPrice).toFixed(2);p.capital-=c;p.inventory+=bl;p.avgBuyCost=G.buyPrice;}
+    }
+    const prs=G.players.filter(q=>q.inventory>0&&q.price>0).map(q=>q.price);
+    if(!prs.length)return;
+    const mn=Math.min(...prs),mx=Math.max(...prs);
+    let np;
+    if(p.price===mn)np=p.price+(Math.random()<.35?.02:0);
+    else if(p.price===mx)np=p.price-.03-Math.random()*.02;
+    else np=(mn+mx)/2-.01+Math.random()*.05;
+    p.price=Math.max(G.buyPrice-.05,Math.min(2.80,+(np.toFixed(2))));
+  });
+  renderMarket();recordPrices();
+}
+
+// ══════════════════════════════════════
+// ROHÖL BÖRSEN-CHART
+// ══════════════════════════════════════
+const OIL={canvas:null,ctx:null,W:0,H:120,dpr:1,MAX:90,animFrame:0};
+
+function initOilChart(){
+  OIL.canvas=document.getElementById('oil-chart');if(!OIL.canvas)return;
+  OIL.dpr=Math.min(window.devicePixelRatio||1,2);
+  const r=OIL.canvas.getBoundingClientRect();
+  OIL.W=Math.max(r.width||340,200);
+  OIL.canvas.width=Math.round(OIL.W*OIL.dpr);
+  OIL.canvas.height=Math.round(OIL.H*OIL.dpr);
+  OIL.ctx=OIL.canvas.getContext('2d');
+  OIL.ctx.scale(OIL.dpr,OIL.dpr);
+  G.rawOilHist=[];
+  recordOilPrice(); // initial point
+  // animate the pulsing dot
+  (function oilAnim(){OIL.animFrame++;drawOilChart();requestAnimationFrame(oilAnim);})();
+}
+
+function recordOilPrice(){
+  const t=Date.now();const p=G.buyPrice;
+  G.rawOilHist.push({t,p});
+  if(G.rawOilHist.length>OIL.MAX)G.rawOilHist.shift();
+  // update big price display
+  const bigEl=document.getElementById('oil-price-big');
+  const badgeEl=document.getElementById('oil-change-badge');
+  if(bigEl)bigEl.textContent=fmt(p);
+  if(badgeEl&&G.rawOilHist.length>=2){
+    const first=G.rawOilHist[0].p;
+    const delta=+(p-first).toFixed(3);
+    const sign=delta>=0?'+':'';
+    badgeEl.textContent=sign+fmt(Math.abs(delta));
+    badgeEl.style.background=delta>=0?'rgba(0,204,102,.15)':'rgba(231,76,60,.15)';
+    badgeEl.style.color=delta>=0?'#00CC66':'#E74C3C';
+  }
+  if(G.rawOilHist.length>=2){
+    const lo=Math.min(...G.rawOilHist.map(h=>h.p)),hi=Math.max(...G.rawOilHist.map(h=>h.p));
+    const rangeEl=document.getElementById('oil-stat-range');
+    if(rangeEl)rangeEl.textContent=`T: ${fmt(lo)} – ${fmt(hi)} €/L`;
+  }
+  drawOilChart();
+}
+
+function drawOilChart(){
+  const{ctx,W,H,hist:_,animFrame}=OIL;
+  const hist=G.rawOilHist;
+  if(!ctx)return;
+  const padL=36,padR=8,padT=8,padB=14;
+  const cW=W-padL-padR,cH=H-padT-padB;
+
+  // Background
+  ctx.fillStyle='#060809';ctx.fillRect(0,0,W,H);
+
+  // Subtle scanlines
+  for(let y=0;y<H;y+=4){
+    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(0,y,W,1);
+  }
+
+  if(hist.length<2){
+    ctx.fillStyle='#1A3A1A';ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Warte auf Preisbewegung…',W/2,H/2);return;
+  }
+
+  const prices=hist.map(h=>h.p);
+  let minP=Math.min(...prices),maxP=Math.max(...prices);
+  const span=maxP-minP;
+  if(span<0.08){minP-=(0.08-span)/2;maxP+=(0.08-span)/2;}
+  minP=+(minP-.01).toFixed(3);maxP=+(maxP+.01).toFixed(3);
+
+  const pY=p=>padT+cH-((p-minP)/(maxP-minP))*cH;
+  const iX=i=>padL+((i)/(OIL.MAX-1))*cW;
+  const offset=OIL.MAX-hist.length;
+
+  // Horizontal grid + price labels
+  const steps=4;
+  for(let s=0;s<=steps;s++){
+    const p=minP+s*(maxP-minP)/steps;
+    const y=pY(p);
+    ctx.strokeStyle=s===0||s===steps?'rgba(0,180,80,0.12)':'rgba(0,180,80,0.06)';
+    ctx.lineWidth=1;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle=s===steps||s===0?'rgba(0,200,100,.5)':'rgba(0,200,100,.25)';
+    ctx.font=`9px 'DM Mono',monospace`;ctx.textAlign='right';
+    ctx.fillText(p.toFixed(2),padL-3,y+3);
+  }
+
+  // Vertical grid (time marks)
+  ctx.strokeStyle='rgba(0,100,40,.12)';ctx.lineWidth=1;
+  for(let i=10;i<OIL.MAX;i+=15){
+    const x=iX(i);
+    ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
+  }
+
+  // Compute points
+  const pts=hist.map((h,i)=>({x:iX(offset+i),y:pY(h.p)}));
+
+  // Area gradient fill
+  const grad=ctx.createLinearGradient(0,padT,0,H-padB);
+  grad.addColorStop(0,'rgba(0,200,80,0.25)');
+  grad.addColorStop(0.6,'rgba(0,200,80,0.06)');
+  grad.addColorStop(1,'rgba(0,200,80,0.0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x,H-padB);
+  pts.forEach(pt=>ctx.lineTo(pt.x,pt.y));
+  ctx.lineTo(pts[pts.length-1].x,H-padB);
+  ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+
+  // Glow line (two passes: glow + sharp)
+  [5,1.8].forEach((lw,pass)=>{
+    ctx.beginPath();
+    pts.forEach((pt,i)=>i===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y));
+    ctx.strokeStyle=pass===0?'rgba(0,220,90,0.18)':'#00DD66';
+    ctx.lineWidth=lw;ctx.lineJoin='round';
+    ctx.shadowBlur=pass===0?0:8;ctx.shadowColor='#00CC66';
+    ctx.stroke();ctx.shadowBlur=0;
+  });
+
+  // Colored up/down segments
+  for(let i=1;i<pts.length;i++){
+    const up=hist[i].p>=hist[i-1].p;
+    ctx.beginPath();ctx.moveTo(pts[i-1].x,pts[i-1].y);ctx.lineTo(pts[i].x,pts[i].y);
+    ctx.strokeStyle=up?'#00FF80':'#FF4455';ctx.lineWidth=1.8;ctx.lineJoin='round';
+    ctx.shadowBlur=4;ctx.shadowColor=up?'#00CC66':'#E74C3C';
+    ctx.stroke();ctx.shadowBlur=0;
+  }
+
+  // Current price line (dashed horizontal)
+  const curP=hist[hist.length-1].p;
+  const curY=pY(curP);
+  ctx.strokeStyle='rgba(0,220,90,0.35)';ctx.lineWidth=1;
+  ctx.setLineDash([4,4]);ctx.lineDashOffset=-(animFrame*.5)%8;
+  ctx.beginPath();ctx.moveTo(padL,curY);ctx.lineTo(W-padR,curY);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Pulsing current price dot
+  const last=pts[pts.length-1];
+  const pulse=0.4+0.35*Math.sin(animFrame*.08);
+  ctx.globalAlpha=pulse;ctx.fillStyle='#00FF80';
+  ctx.beginPath();ctx.arc(last.x,last.y,9,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;ctx.fillStyle='#00FF80';
+  ctx.beginPath();ctx.arc(last.x,last.y,3.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#060809';
+  ctx.beginPath();ctx.arc(last.x,last.y,1.5,0,Math.PI*2);ctx.fill();
+
+  // Price label at current dot
+  const curLabel=fmt(curP)+' €';
+  const labelX=Math.min(last.x+10,W-padR-30);
+  ctx.fillStyle='#00FF80';ctx.font=`bold 9px 'DM Mono',monospace`;ctx.textAlign='left';
+  ctx.shadowBlur=6;ctx.shadowColor='#00CC66';
+  ctx.fillText(curLabel,labelX,curY+3);ctx.shadowBlur=0;
+}
+
+// ══════════════════════════════════════════════════
+// QUIZ SYSTEM – Pädagogische Fragen
+// ══════════════════════════════════════════════════
+const QUIZ_FALLBACK=[
+  {topic:'Oligopol',icon:'🏪',
+   question:'Nur wenige Tankstellen konkurrieren in einer Stadt. Welche Marktform ist das?',
+   options:['Monopol – ein Anbieter beherrscht den Markt','Oligopol – wenige Anbieter beobachten sich gegenseitig','Polypol – viele Anbieter ohne Marktmacht'],
+   correct:1,
+   explanation:'Ein Oligopol: wenige Anbieter, die aufeinander reagieren. Jede Preissenkung einer Tankstelle zwingt die anderen zur Reaktion – genau wie in diesem Spiel!'},
+
+  {topic:'Angebot & Nachfrage',icon:'📈',
+   question:'Die OPEC reduziert die Ölförderung. Was passiert mit dem Benzinpreis an der Tankstelle?',
+   options:['Preis steigt – weniger Angebot bei gleicher Nachfrage','Preis fällt – die Raffinerien sparen Kosten','Preis bleibt stabil – Märkte regulieren sich selbst'],
+   correct:0,
+   explanation:'Klassisches Angebot-Nachfrage-Gesetz: Sinkt das Angebot bei gleichbleibender Nachfrage, steigt der Preis. OPEC nutzt das als Machtinstrument gezielt!'},
+
+  {topic:'Preisbildung',icon:'💰',
+   question:'Warum setzen Oligopolisten oft ähnliche Preise, obwohl sie keine Absprachen treffen?',
+   options:['Zufälle – alle denken gleich','Preisführerschaft – alle orientieren sich am Marktführer','Staatliche Preisregulierung schreibt es vor'],
+   correct:1,
+   explanation:'Ohne Absprache folgen Oligopolisten oft dem Marktführer (Preisführerschaft). Wer teurer ist, verliert Kunden. Wer billiger ist, macht Verlust oder zwingt alle in einen Preiskampf.'},
+
+  {topic:'Kartellrecht',icon:'⚖️',
+   question:'Vier Tankstellen-Betreiber treffen sich heimlich und einigen sich auf Mindestpreise. Was ist das?',
+   options:['Normale Marktstrategie – jeder darf Preise abstimmen','Ein Preiskartell – illegal nach deutschem & EU-Recht','Preisführerschaft – vollkommen legal'],
+   correct:1,
+   explanation:'Preiskartelle sind in Deutschland durch das GWB (Gesetz gegen Wettbewerbsbeschränkungen) und EU-Recht verboten. Das Bundeskartellamt überwacht Tankstellenpreise aktiv!'},
+
+  {topic:'Börsenprinzip',icon:'📊',
+   question:'Der Rohölpreis schwankt täglich an der Börse. Was treibt diese Schwankungen hauptsächlich an?',
+   options:['Nur die tatsächlich geförderte Ölmenge','Angebot, Nachfrage UND Erwartungen der Händler über die Zukunft','Die Wechselstimmung der Ölminister'],
+   correct:1,
+   explanation:'Börsenkurse spiegeln nicht nur harte Fakten wider, sondern auch Erwartungen. Schon die Ankündigung einer OPEC-Kürzung lässt Preise steigen – noch bevor weniger Öl fließt!'},
+
+  {topic:'Preiselastizität',icon:'🚗',
+   question:'Steigt der Benzinpreis um 20%, kaufen die meisten Menschen trotzdem ähnlich viel. Wie nennt man das?',
+   options:['Preiselastische Nachfrage – Kunden reagieren stark','Preisunelastische Nachfrage – Kunden reagieren kaum','Vollkommene Substitution – alle steigen auf E-Autos um'],
+   correct:1,
+   explanation:'Benzin ist (kurzfristig) preisunelastisch: Wer zur Arbeit fahren muss, tankt – auch wenn es teurer wird. Genau das macht Benzin für Tankstellen so profitabel!'},
+
+  {topic:'Marktmacht',icon:'💪',
+   question:'Shell, BP und Aral machen gleichzeitig die Preise teurer. Warum schauen Autofahrer trotzdem selten nach günstigeren Alternativen?',
+   options:['Bequemlichkeit & wenige günstige Alternativen in der Nähe','Autofahrer wissen nicht, wo sie tanken sollen','Der Staat reguliert alle Preise gleich'],
+   correct:0,
+   explanation:'Geringe Transparenz, Bequemlichkeit und wenige Alternativen geben Oligopolisten Marktmacht. Tankstellen-Apps (wie Mehr-Tanken) helfen Verbrauchern inzwischen, Preise zu vergleichen!'},
+
+  {topic:'Wettbewerb',icon:'🏁',
+   question:'Eine neue günstige Tankstelle eröffnet. Was werden die anderen Tankstellen wahrscheinlich tun?',
+   options:['Preise halten – der neue Anbieter hat sicher schlechte Qualität','Preise senken, um Kunden zu halten – klassischer Preiswettbewerb','Zusammenschließen und den Neuen vom Markt drängen'],
+   correct:1,
+   explanation:'Neuer Wettbewerb zwingt Oligopolisten zu Reaktionen! Typisch: Preissenkungen oder Sonderangebote. Das ist Wettbewerb in Aktion und gut für Verbraucher.'},
+];
+
+let Q={ev:null,pendingDelta:0,timerIv:null,answered:false,correctIdx:-1};
+
+async function showQuiz(ev){
+  if(!G.gameOn)return;
+  Q.ev=ev;Q.pendingDelta=ev.d;Q.answered=false;
+
+  // Pause customers during quiz
+  clearInterval(G.custIv);G.custIv=null;
+
+  // Setup overlay
+  const overlay=document.getElementById('quiz-overlay');
+  overlay.style.display='block';
+  document.getElementById('quiz-loading').style.display='block';
+  document.getElementById('quiz-options').innerHTML='';
+  document.getElementById('quiz-explanation').style.display='none';
+  document.getElementById('quiz-continue-btn').style.display='none';
+  document.getElementById('quiz-event-box').style.display='none';
+  document.getElementById('quiz-question').textContent='Frage wird generiert…';
+
+  // Try Claude API for event-specific question, fallback to bank
+  let q=null;
+  try{
+    const prompt=`Du bist Wirtschaftslehrer an einer deutschen Berufsschule.
+Markt-Ereignis im Spiel: "${ev.t}" (Preisänderung: ${ev.d>0?'+':''}${ev.d.toFixed(2)}€/L)
+Erstelle eine Multiple-Choice-Frage dazu für Schüler (16-20 Jahre) im VWL-Kontext.
+Antworte NUR mit gültigem JSON ohne Markdown:
+{"topic":"[Thema z.B. Angebot & Nachfrage]","icon":"[1 Emoji]","question":"[Frage, max 120 Zeichen]","options":["[A, max 70 Zeichen]","[B, max 70 Zeichen]","[C, max 70 Zeichen]"],"correct":0,"explanation":"[2-3 Sätze Erklärung mit Bezug zum Ereignis und Markttheorie]"}
+correct = Index der richtigen Antwort (0, 1 oder 2).`;
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await r.json();
+    const raw=data.content?.find(b=>b.type==='text')?.text||'';
+    const clean=raw.replace(/```json|```/g,'').trim();
+    q=JSON.parse(clean);
+  }catch(e){
+    // Use random fallback
+    q=QUIZ_FALLBACK[0|Math.random()*QUIZ_FALLBACK.length];
+  }
+
+  Q.correctIdx=q.correct;
+  document.getElementById('quiz-loading').style.display='none';
+  document.getElementById('quiz-icon').textContent=q.icon||'📊';
+  document.getElementById('quiz-topic').textContent=q.topic||'VWL';
+
+  // Show event context
+  document.getElementById('quiz-event-box').style.display='block';
+  document.getElementById('quiz-event-text').textContent=ev.t;
+
+  document.getElementById('quiz-question').textContent=q.question;
+
+  // Render options
+  const labels=['A','B','C'];
+  document.getElementById('quiz-options').innerHTML=q.options.map((opt,i)=>`
+    <button onclick="answerQuiz(${i})" style="
+      background:var(--card2);border:1.5px solid var(--line2);border-radius:12px;
+      padding:14px 16px;text-align:left;color:var(--text);font-family:'DM Sans',sans-serif;
+      font-size:13px;cursor:pointer;display:flex;align-items:flex-start;gap:12px;
+      transition:.15s;width:100%;-webkit-tap-highlight-color:transparent" id="opt-btn-${i}">
+      <span style="background:var(--line2);border-radius:6px;padding:3px 9px;font-weight:700;
+        font-size:11px;color:var(--fuel);flex-shrink:0;font-family:'Bebas Neue',sans-serif;letter-spacing:1px">${labels[i]}</span>
+      <span>${esc(opt)}</span>
+    </button>`).join('');
+
+  // Store explanation for later reveal
+  document.getElementById('quiz-explanation-text').dataset.exp=q.explanation||'';
+
+  // 30 second countdown
+  let secs=30;
+  document.getElementById('quiz-timer').textContent=secs;
+  document.getElementById('quiz-timer-ring').style.strokeDashoffset=0;
+  const circ=81.7;
+  if(Q.timerIv)clearInterval(Q.timerIv);
+  Q.timerIv=setInterval(()=>{
+    secs--;
+    document.getElementById('quiz-timer').textContent=secs;
+    document.getElementById('quiz-timer-ring').style.strokeDashoffset=circ*(1-secs/30);
+    if(secs<=10)document.getElementById('quiz-timer').style.color='var(--red)';
+    if(secs<=0){clearInterval(Q.timerIv);if(!Q.answered)revealAnswer(-1,q);}
+  },1000);
+}
+
+function answerQuiz(idx){
+  if(Q.answered)return;
+  Q.answered=true;clearInterval(Q.timerIv);
+  revealAnswer(idx,null);
+}
+
+function revealAnswer(chosen,qObj){
+  // Disable all buttons visually
+  const labels=['A','B','C'];
+  const buttons=document.querySelectorAll('[id^="opt-btn-"]');
+  buttons.forEach((btn,i)=>{
+    btn.style.cursor='default';
+    if(i===Q.correctIdx){
+      btn.style.background='rgba(46,204,113,.2)';
+      btn.style.borderColor='var(--green)';
+      btn.querySelector('span').style.background='var(--green)';
+      btn.querySelector('span').style.color='white';
+    }else if(i===chosen&&chosen!==Q.correctIdx){
+      btn.style.background='rgba(231,76,60,.15)';
+      btn.style.borderColor='var(--red)';
+    }else{
+      btn.style.opacity='.4';
+    }
+  });
+
+  // Show explanation
+  const expEl=document.getElementById('quiz-explanation');
+  const labelEl=document.getElementById('quiz-result-label');
+  const textEl=document.getElementById('quiz-explanation-text');
+  expEl.style.display='block';
+
+  if(chosen<0){
+    expEl.style.background='rgba(52,152,219,.1)';expEl.style.border='1px solid rgba(52,152,219,.3)';
+    labelEl.textContent='⏰ Zeit abgelaufen!';labelEl.style.color='var(--blue)';
+  }else if(chosen===Q.correctIdx){
+    expEl.style.background='rgba(46,204,113,.1)';expEl.style.border='1px solid rgba(46,204,113,.3)';
+    labelEl.textContent='✅ Richtig!';labelEl.style.color='var(--green)';
+  }else{
+    expEl.style.background='rgba(231,76,60,.1)';expEl.style.border='1px solid rgba(231,76,60,.3)';
+    labelEl.textContent=`❌ Leider falsch – richtig wäre ${labels[Q.correctIdx]}`;labelEl.style.color='var(--red)';
+  }
+
+  // Get explanation from pre-cached question or fallback
+  const allQ=[...QUIZ_FALLBACK];
+  const cached=allQ.find(q=>q.options&&q.options[Q.correctIdx]);
+  textEl.textContent=document.getElementById('quiz-explanation-text').dataset.exp||
+    (Q.ev?`Dieses Ereignis "${Q.ev.t}" hat einen direkten Einfluss auf den Rohölpreis von ${Q.pendingDelta>=0?'+':''}${Q.pendingDelta.toFixed(2)} €/L.`:'');
+
+  // Show market impact preview
+  if(Q.pendingDelta!==0){
+    const newP=+(G.buyPrice+Q.pendingDelta).toFixed(3);
+    const badge=document.createElement('div');
+    badge.style.cssText=`margin-top:10px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:12px`;
+    badge.innerHTML=`📈 Marktauswirkung: Rohölpreis ändert sich von <b>${fmt(G.buyPrice)} €/L</b> auf <b style="color:${Q.pendingDelta>0?'var(--red)':'var(--green)'}">${fmt(Math.max(.90,Math.min(2.20,newP)))} €/L</b>`;
+    expEl.appendChild(badge);
+  }
+
+  document.getElementById('quiz-continue-btn').style.display='flex';
+}
+
+function closeQuiz(){
+  document.getElementById('quiz-overlay').style.display='none';
+  document.getElementById('quiz-timer').style.color='var(--fuel)';
+
+  // Now apply the market event
+  const ev=Q.ev;
+  if(ev){
+    G.buyPrice=Math.max(.90,Math.min(2.20,+(G.buyPrice+ev.d).toFixed(3)));
+    document.getElementById('g-news').textContent='📰 '+ev.t;
+    document.getElementById('g-bp').textContent=fmt(G.buyPrice)+' €/L';
+    updateBuyCosts();updateMarginDisp();
+    recordOilPrice();
+    toast('📢 Markt wieder offen! '+ev.t.slice(0,35),3000);
+  }
+
+  // Resume customers
+  if(G.gameOn&&!G.custIv){
+    customerEvent();
+    G.custIv=setInterval(customerEvent,4000);
+  }
+}
+
+// ══════════════════════════════════════
+// LIVE PRICE CHART (Börsen-Style)
+// ══════════════════════════════════════
+const CH={
+  canvas:null,ctx:null,W:0,H:0,dpr:1,
+  hist:[],   // [{t, prices:[]}]
+  MAX:80,    // max data points kept
+  chartIv:null,
+  tickCount:0,
+};
+
+function initChart(){
+  CH.canvas=document.getElementById('price-chart');if(!CH.canvas)return;
+  CH.dpr=Math.min(window.devicePixelRatio||1,2);
+  const r=CH.canvas.getBoundingClientRect();
+  CH.W=Math.max(r.width||340,200);CH.H=140;
+  CH.canvas.width=Math.round(CH.W*CH.dpr);
+  CH.canvas.height=Math.round(CH.H*CH.dpr);
+  CH.ctx=CH.canvas.getContext('2d');
+  CH.ctx.scale(CH.dpr,CH.dpr);
+  CH.hist=[];CH.tickCount=0;
+}
+
+function recordPrices(){
+  if(!CH.canvas){initChart();}
+  if(!CH.canvas||!CH.ctx)return;
+  CH.tickCount++;
+  const prices=G.players.map(p=>+(p.price||0).toFixed(3));
+  CH.hist.push({t:CH.tickCount,prices});
+  if(CH.hist.length>CH.MAX)CH.hist.shift();
+  drawChart();
+  updateChartLegend();
+}
+
+function drawChart(){
+  const{ctx,W,H,hist}=CH;if(!ctx||hist.length<2)return;
+  const padL=36,padR=6,padT=8,padB=16;
+  const cW=W-padL-padR,cH=H-padT-padB;
+
+  // Background
+  ctx.fillStyle='#070910';ctx.fillRect(0,0,W,H);
+
+  // All prices for range
+  const all=hist.flatMap(h=>h.prices.filter(p=>p>0));
+  if(!all.length)return;
+  let minP=Math.min(...all),maxP=Math.max(...all);
+  const span=maxP-minP;
+  if(span<0.12){minP-=(0.12-span)/2;maxP+=(0.12-span)/2;}
+  minP=+(minP-.015).toFixed(3);maxP=+(maxP+.015).toFixed(3);
+
+  const pY=p=>padT+cH-((p-minP)/(maxP-minP))*cH;
+  const iX=i=>padL+(i/(CH.MAX-1))*cW;
+  const startI=CH.MAX-hist.length;
+
+  // Grid lines
+  const steps=4;
+  for(let s=0;s<=steps;s++){
+    const p=minP+s*(maxP-minP)/steps;
+    const y=pY(p);
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.30)';ctx.font=`9px 'DM Mono',monospace`;ctx.textAlign='right';
+    ctx.fillText(p.toFixed(2),padL-3,y+3);
+  }
+
+  // Vertical time ticks (every 10 data points)
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(let i=0;i<CH.MAX;i+=10){
+    const x=iX(i);
+    ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
+  }
+
+  // Time label
+  ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='8px sans-serif';ctx.textAlign='left';
+  ctx.fillText('← älter',padL,H-3);
+  ctx.textAlign='right';ctx.fillText('jetzt →',W-padR,H-3);
+
+  // Draw each station line
+  G.players.forEach((player,idx)=>{
+    const col=C_FG[idx];
+    const pts=hist.map((h,i)=>{
+      const p=h.prices[idx];
+      if(!p||p<=0)return null;
+      return{x:iX(startI+i),y:pY(p)};
+    }).filter(Boolean);
+    if(pts.length<2)return;
+
+    // Area fill
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x,H-padB);
+    pts.forEach(pt=>ctx.lineTo(pt.x,pt.y));
+    ctx.lineTo(pts[pts.length-1].x,H-padB);
+    ctx.closePath();
+    ctx.fillStyle=col.replace(')',',0.07)').replace('rgb','rgba').replace('#',
+      (m,o,s)=>`rgba(${parseInt(col.slice(1,3),16)},${parseInt(col.slice(3,5),16)},${parseInt(col.slice(5,7),16)},`)+',0.07)';
+    // safer approach:
+    ctx.globalAlpha=0.08;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=1;
+
+    // Line
+    ctx.beginPath();
+    pts.forEach((pt,i)=>i===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y));
+    ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.lineJoin='round';
+    ctx.shadowBlur=6;ctx.shadowColor=col;ctx.stroke();ctx.shadowBlur=0;
+
+    // End dot (current price)
+    const last=pts[pts.length-1];
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(last.x,last.y,3.5,0,Math.PI*2);ctx.fill();
+    // pulsing ring
+    ctx.globalAlpha=0.25+0.25*Math.sin(Date.now()/300+idx);
+    ctx.beginPath();ctx.arc(last.x,last.y,7,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  });
+
+  // Current price labels on right edge
+  G.players.forEach((player,idx)=>{
+    const p=player.price;if(!p)return;
+    const y=pY(p);const col=C_FG[idx];
+    ctx.fillStyle=col;ctx.font=`bold 8px 'DM Mono',monospace`;ctx.textAlign='left';
+    ctx.fillText(p.toFixed(2),W-padR+1,y+3);
+  });
+}
+
+function updateChartLegend(){
+  const el=document.getElementById('chart-legend');if(!el)return;
+  el.innerHTML=G.players.map((p,i)=>`
+    <span style="display:flex;align-items:center;gap:3px;font-size:9px;color:${C_FG[i]}">
+      <span style="width:14px;height:2px;background:${C_FG[i]};border-radius:1px;display:inline-block"></span>
+      <span>${(p.name||'').slice(0,7)}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:9px">${fmt(p.price)}€</span>
+    </span>`).join('');
+}
+
+// ══════════════════════════════════════
+// END GAME
+// ══════════════════════════════════════
+function endGame(){
+  clearAllIntervals();stopAnim();
+  if(!G.isSolo){const d=loadLobby();if(d){d.phase='ended';saveLobby(d);}}
+  showFinal();
+}
+
+function showFinal(){
+  document.getElementById('end-btn-wrap').style.display='none';
+  const sorted=[...G.players].sort((a,b)=>b.capital-a.capital);
+  const w=sorted[0];
+  document.getElementById('final-w').textContent=w.idx===G.myIdx?'🎉 DU GEWINNST!':esc(w.name)+' gewinnt!';
+  const rk=['r1','r2','r3','r4','r4','r4'];
+  document.getElementById('final-r').innerHTML=sorted.map((p,i)=>`
+    <div class="ri">
+      <div class="rk ${rk[i]}">${i+1}</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:${C_BG[p.idx]};color:${C_FG[p.idx]};display:flex;align-items:center;justify-content:center;font-size:14px">${AVTS[p.idx]}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${esc(p.name)}${p.idx===G.myIdx?' <span style="color:var(--fuel)">(Du)</span>':''}</div>
+        <div style="font-size:10px;color:var(--muted)">${p.cnt||0} Kunden · Umsatz: ${eur(p.totalRev||0)} · 📦 Lager: ${eur(p.storageCosts||0)}</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${p.capital>=10000?'var(--green)':'var(--red)'}">${eur(p.capital)}</div>
+    </div>`).join('');
+  loadFinalAI(sorted);showScreen('s-final');
+}
+
+// ══════════════════════════════════════
+// CLAUDE AI
+// ══════════════════════════════════════
+async function loadAITip(){
+  const el=document.getElementById('g-ai');el.textContent='Analysiere…';el.style.opacity='.5';
+  const oth=G.players.filter(p=>p.idx!==G.myIdx);
+  const avg=oth.length?oth.reduce((s,p)=>s+(p.price||1.59),0)/oth.length:0;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:
+        `Tankstellen-Berater. Deutsch, max. 2 Sätze. Kein Timer, Spiel läuft bis Host beendet. Einkaufspreis: ${fmt(G.buyPrice)}€/L. Mein Preis: ${fmt(G.myPrice)}€/L. Ø Konkurrenz: ${avg>0?fmt(avg)+'€':' unbekannt'}. Strategie für Preis + Lagerbestand?`}]})});
+    const d=await r.json();el.textContent=d.content?.find(b=>b.type==='text')?.text||'–';el.style.opacity='1';
+  }catch(e){el.textContent='Tipp: Halte deinen Tank stets über 1.000 L – leerer Tank = keine Einnahmen!';el.style.opacity='1';}
+}
+
+async function loadFinalAI(sorted){
+  const el=document.getElementById('final-ai');el.textContent='Analysiere…';el.style.opacity='.5';
+  const me=G.players[G.myIdx];
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:
+        `Wirtschaftsanalyst. Echtzeit-Oligopol ohne Timer. Deutsch, 3 Sätze.
+Mein Team: ${esc(me.name)}, Kapital: ${eur(me.capital)}, ${me.cnt||0} Kunden, Umsatz: ${eur(me.totalRev||0)}, Lagerkosten: ${eur(me.storageCosts||0)}.
+Sieger: ${esc(sorted[0].name)} (${eur(sorted[0].capital)}, ${sorted[0].cnt||0} Kunden, Lagerkosten: ${eur(sorted[0].storageCosts||0)}). Kurze Analyse: War die Lagerstrategie optimal? Tipp für nächstes Mal.`}]})});
+    const d=await r.json();el.textContent=d.content?.find(b=>b.type==='text')?.text||'–';el.style.opacity='1';
+  }catch(e){el.textContent='Mehr Kunden durch günstigeren Preis – aber ohne Marge kein Gewinn. Die Balance ist der Schlüssel!';el.style.opacity='1';}
+}
+</script>
+</body>
+</html>
