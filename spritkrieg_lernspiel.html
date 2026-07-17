@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SpritKrieg</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fuel:#E8A020;--fuel2:#F5C040;--ash:#0E0F18;--road:#1A1B28;
+  --card:#1E1F2C;--card2:#252636;--line:#2C2D40;--line2:#363748;
+  --text:#EEEEF8;--muted:#7070A0;--dim:#404060;
+  --green:#2ECC71;--red:#E74C3C;--blue:#3498DB;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+body{font-family:'DM Sans',sans-serif;background:var(--ash);color:var(--text);min-height:100svh;overflow-x:hidden}
+.screen{display:none;min-height:100svh;flex-direction:column;padding:20px 16px 32px}
+.screen.active{display:flex}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:4px;line-height:1;color:var(--fuel)}
+.logo b{color:var(--text)}
+.lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:5px;display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:14px;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--fuel);color:#111}
+.btn-ghost{background:none;border:1px solid var(--line2);color:var(--muted)}
+.btn-green{background:var(--green);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-sm{padding:9px 14px;font-size:13px;width:auto;border-radius:9px}
+.btn+.btn{margin-top:10px}
+input[type=text]{width:100%;padding:13px 15px;background:var(--road);border:1px solid var(--line);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:.2s}
+input:focus{border-color:var(--fuel)}
+.slider{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--line2);outline:none;cursor:pointer;margin:8px 0}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--fuel);border:3px solid var(--ash);box-shadow:0 2px 10px rgba(0,0,0,.6);cursor:pointer}
+.pr{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.pr:last-child{border-bottom:none}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sep{height:1px;background:var(--line);margin:12px 0}
+.lobby-code{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:10px;color:var(--fuel);text-align:center;background:var(--road);border:1px dashed var(--line2);border-radius:12px;padding:14px;cursor:pointer}
+/* GAME */
+#road-wrap{position:relative;flex-shrink:0}
+#road-canvas{display:block;width:100%;height:420px;flex-shrink:0;cursor:grab;touch-action:pan-y}
+#road-canvas:active{cursor:grabbing}
+.iso-btn{position:absolute;width:34px;height:34px;border-radius:9px;background:rgba(14,15,24,.72);border:1px solid rgba(255,255,255,.15);color:#EEEEF8;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(3px);-webkit-tap-highlight-color:transparent}
+.iso-btn:active{background:rgba(232,160,32,.35)}
+#iso-center-btn{top:10px;right:10px}
+#iso-zoom-in{top:10px;right:52px}
+#iso-zoom-out{top:52px;right:52px}
+#iso-hud-toggle{top:52px;right:10px}
+#iso-price-hud,#iso-info-hud,#iso-legend{transition:opacity .25s}
+.hud-hidden{opacity:0!important;pointer-events:none!important}
+#iso-legend{position:absolute;top:10px;left:10px;font-size:10px;color:rgba(255,255,255,.55);background:rgba(14,15,24,.55);padding:4px 8px;border-radius:7px;letter-spacing:.5px}
+#iso-price-hud{position:absolute;bottom:10px;left:10px;display:flex;align-items:center;gap:7px;background:rgba(14,15,24,.78);border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:6px 8px;backdrop-filter:blur(3px)}
+#iso-tank-cell{padding-right:8px;margin-right:1px;border-right:1px solid rgba(255,255,255,.18);text-align:center}
+#iso-tank-val{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--text);line-height:1;white-space:nowrap}
+#iso-info-hud{position:absolute;bottom:10px;right:10px;background:rgba(14,15,24,.78);border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:7px 9px;backdrop-filter:blur(3px);min-width:118px;max-width:170px}
+#iso-info-hud .ih-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:8px}
+#iso-info-hud .ih-title{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.55)}
+#iso-info-toggle{width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+#iso-info-toggle:active{background:rgba(232,160,32,.4)}
+.ih-oil-price{font-family:'Bebas Neue',sans-serif;font-size:21px;color:#00DD66;line-height:1}
+.ih-rank-row{display:flex;justify-content:space-between;gap:6px;font-size:10px;padding:1.5px 0;color:rgba(255,255,255,.85);white-space:nowrap}
+.ih-rank-row.me{color:var(--fuel);font-weight:700}
+.iso-arrow-btn{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.iso-arrow-btn:active{background:rgba(232,160,32,.4)}
+#iso-price-hud .lbl{font-size:8px;margin-bottom:1px}
+#iso-price-val{font-family:'Bebas Neue',sans-serif;font-size:19px;color:var(--fuel);line-height:1;white-space:nowrap;transition:transform .15s}
+#game-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 80px}
+#fixed-stats{display:flex;background:var(--road);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 6px;flex-shrink:0}
+.fs-cell{flex:1;text-align:center;border-right:1px solid var(--line)}
+.fs-cell:last-child{border-right:none}
+.fs-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:2px}
+.fs-val{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text);line-height:1}
+/* LIVE BADGE */
+.live-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.live-dot{width:9px;height:9px;border-radius:50%;background:var(--red);animation:blink .8s ease-in-out infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+/* CAPITAL */
+.capital-big{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:2px;color:var(--fuel);line-height:1;transition:.2s}
+.capital-big.earn{color:var(--green);transform:scale(1.05)}
+/* BUY SECTION */
+.buy-card{border-color:var(--line2)}
+.buy-card.urgent{border-color:var(--red);animation:pulse-red 1s ease-in-out infinite}
+@keyframes pulse-red{0%,100%{border-color:var(--red)}50%{border-color:#7B0000}}
+.tank-bar{height:14px;background:var(--line2);border-radius:7px;overflow:hidden;margin:6px 0}
+.tank-fill{height:100%;border-radius:7px;transition:.4s}
+/* BUY PILLS – instant tap */
+.buy-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:8px}
+.buy-pill{background:var(--card2);border:1.5px solid var(--line2);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+.buy-pill:active{background:var(--green);border-color:var(--green);transform:scale(.95)}
+.buy-pill .pl{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--text);letter-spacing:1px}
+.buy-pill .pc{font-size:10px;color:var(--muted);margin-top:1px}
+/* PRICE */
+.price-big{font-family:'Bebas Neue',sans-serif;font-size:64px;text-align:center;color:var(--fuel);line-height:1;transition:transform .15s}
+/* MARKET CARDS */
+.mcard{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:11px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.mcard.me{border-color:var(--fuel)}
+.mcard.cheapest{border-color:var(--green)}
+/* STAT PILLS */
+.stat-row{display:flex;gap:8px;margin-bottom:10px}
+.sc{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.sv{font-family:'Bebas Neue',sans-serif;font-size:19px;margin-top:2px}
+.up{color:var(--green)}.dn{color:var(--red)}.gold{color:var(--fuel)}
+/* NEWS */
+.news{background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.2);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--fuel);margin-bottom:10px;line-height:1.5}
+/* AI */
+.ai-box{background:var(--road);border:1px solid var(--line);border-radius:9px;padding:12px;font-size:12px;color:var(--muted);line-height:1.65;min-height:40px}
+/* END BUTTON pinned */
+#end-btn-wrap{position:fixed;bottom:0;left:0;right:0;padding:12px 14px;background:linear-gradient(transparent,var(--ash) 30%);display:none}
+/* RESULT */
+.ri{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.ri:last-child{border-bottom:none}
+.rk{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0}
+.r1{background:rgba(232,160,32,.25);color:var(--fuel);border:1px solid var(--fuel)}
+.r2{background:rgba(52,152,219,.2);color:var(--blue);border:1px solid var(--blue)}
+.r3{background:rgba(46,204,113,.2);color:var(--green);border:1px solid var(--green)}
+.r4{background:var(--line);color:var(--muted)}
+.trophy{font-size:58px;text-align:center;animation:bounce .7s ease-in-out infinite alternate;margin:16px 0}
+@keyframes bounce{to{transform:translateY(-8px)}}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 18px;font-size:13px;z-index:9999;transition:.3s;max-width:280px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.6);pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+/* LOW TANK WARNING */
+.tank-warning{background:rgba(231,76,60,.12);border:1px solid var(--red);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--red);font-weight:600;text-align:center;margin-bottom:8px;display:none}
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div class="screen active" id="s-start">
+  <div style="margin:30px 0 24px"><div class="logo">Sprit<b>Krieg</b></div>
+    <div style="font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-top:4px">Echtzeit-Oligopol</div></div>
+  <div class="card"><div class="lbl">Gruppen-Name</div>
+    <input type="text" id="inp-name" placeholder="z.B. Shell-Team A" maxlength="20"></div>
+  <button class="btn btn-primary" onclick="goCreate()">⛽ Lobby erstellen</button>
+  <button class="btn" style="background:var(--card2);border:1px solid var(--line)" onclick="showScreen('s-join')">🔑 Lobby beitreten</button>
+  <div class="sep"></div>
+  <button class="btn btn-ghost" onclick="goSolo()">🤖 Gegen KI spielen</button>
+</div>
+
+<!-- JOIN -->
+<div class="screen" id="s-join">
+  <button class="btn btn-ghost btn-sm" onclick="showScreen('s-start')" style="width:auto;margin-bottom:20px">← Zurück</button>
+  <div class="logo" style="font-size:32px;margin-bottom:22px">Lobby<b>Code</b></div>
+  <div class="card"><div class="lbl">Code eingeben</div>
+    <input type="text" id="inp-code" placeholder="ABCDEF" maxlength="6"
+      style="font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:10px;text-align:center;text-transform:uppercase"></div>
+  <button class="btn btn-primary" onclick="joinLobby()">🚀 Beitreten</button>
+</div>
+
+<!-- LOBBY -->
+<div class="screen" id="s-lobby">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+    <div><div class="logo" style="font-size:28px">Warte<b>raum</b></div>
+      <div id="lobby-role" style="font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase">HOST</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="leaveLobby()">✕</button>
+  </div>
+  <div class="card" style="padding:12px 14px">
+    <div class="lbl">Code teilen (tippen zum Kopieren)</div>
+    <div class="lobby-code" id="lobby-code-el" onclick="copyCode()">------</div>
+  </div>
+  <div class="card" style="flex:1"><div class="lbl">Teams (<span id="lobby-count">0</span>/6)</div>
+    <div id="lobby-players"></div></div>
+  <button class="btn btn-primary" onclick="hostStart()">▶ Markt öffnen</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="s-game" style="padding:0">
+  <div id="road-wrap">
+    <canvas id="road-canvas"></canvas>
+    <div id="iso-legend">🏙️ Stadtkarte · Wischen zum Verschieben</div>
+    <div class="iso-btn" id="iso-zoom-in" onclick="isoZoom(1)">➕</div>
+    <div class="iso-btn" id="iso-zoom-out" onclick="isoZoom(-1)">➖</div>
+    <div class="iso-btn" id="iso-center-btn" onclick="isoRecenter()">🎯</div>
+    <div class="iso-btn" id="iso-hud-toggle" onclick="toggleHudVisibility()">👁</div>
+    <div id="iso-price-hud">
+      <div id="iso-tank-cell">
+        <div class="lbl" style="margin-bottom:0;color:rgba(255,255,255,.55)">Tank</div>
+        <div id="iso-tank-val">0 L</div>
+      </div>
+      <div class="iso-arrow-btn" style="color:var(--red)" onclick="priceStep(-1)">▼</div>
+      <div style="text-align:center">
+        <div class="lbl" style="margin-bottom:0;color:rgba(255,255,255,.55)">Mein Preis</div>
+        <div id="iso-price-val">1,59 €</div>
+      </div>
+      <div class="iso-arrow-btn" style="color:var(--green)" onclick="priceStep(1)">▲</div>
+    </div>
+    <div id="iso-info-hud">
+      <div class="ih-head">
+        <span class="ih-title" id="iso-info-title">Rohöl</span>
+        <div id="iso-info-toggle" onclick="toggleInfoHud()">🔄</div>
+      </div>
+      <div id="iso-info-content"></div>
+    </div>
+  </div>
+  <div id="fixed-stats">
+    <div class="fs-cell"><div class="fs-lbl">Kosten</div><div class="fs-val" id="fs-cost" style="color:var(--red)">0€</div></div>
+    <div class="fs-cell"><div class="fs-lbl">Erlös</div><div class="fs-val" id="fs-rev">0€</div></div>
+    <div class="fs-cell"><div class="fs-lbl">Gewinn</div><div class="fs-val" id="fs-profit">0€</div></div>
+    <div class="fs-cell"><div class="fs-lbl">Marge</div><div class="fs-val" id="fs-margin">–</div></div>
+  </div>
+  <div id="game-scroll">
+
+    <!-- TOP ROW -->
+    <div class="live-row">
+      <div class="live-dot"></div>
+      <div style="font-size:11px;font-weight:600;color:var(--red);letter-spacing:1px">MARKT OFFEN</div>
+      <div style="margin-left:auto;text-align:right">
+        <div class="lbl" style="margin-bottom:0">Kapital</div>
+        <div class="capital-big" id="g-cap">10.000€</div>
+      </div>
+    </div>
+
+    <!-- NEWS -->
+    <div class="news" id="g-news">📰 Markt ist geöffnet – kaufe Sprit und setze deinen Preis!</div>
+
+    <!-- ═══ ROHÖL BÖRSEN-CHART ═══ -->
+    <div style="background:#060809;border:1px solid #1A2A1A;border-radius:12px;padding:10px 10px 5px;margin-bottom:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:4px">
+            <div style="width:7px;height:7px;border-radius:50%;background:#00CC66;animation:blink .8s ease-in-out infinite"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:#00AA55;letter-spacing:1px">ROHÖL / BRENT</span>
+          </div>
+          <span style="font-size:9px;color:#336633;letter-spacing:0.5px">LIVE</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:5px">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#00DD66;letter-spacing:1px" id="oil-price-big">1,42</span>
+          <span style="font-size:11px;color:#336633">€/L</span>
+          <span style="font-size:10px;padding:1px 5px;border-radius:4px;font-weight:600" id="oil-change-badge" style="background:rgba(0,204,102,.15);color:#00CC66">±0,00</span>
+        </div>
+      </div>
+      <canvas id="oil-chart" style="width:100%;height:120px;display:block"></canvas>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:#225522;margin-top:3px;padding:0 2px">
+        <span>← älter</span>
+        <span id="oil-stat-range">Heute</span>
+        <span>aktuell →</span>
+      </div>
+    </div>
+    <div class="card buy-card" id="buy-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="lbl" style="margin-bottom:0">Mein Tank</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1" id="g-inv">0 L</div>
+        </div>
+        <div style="text-align:right">
+          <div class="lbl" style="margin-bottom:0">Einkaufspreis</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--fuel)" id="g-bp">1,42 €/L</div>
+        </div>
+      </div>
+      <div class="tank-bar"><div class="tank-fill" id="g-tfill" style="width:0%"></div></div>
+
+      <!-- STORAGE COST ROW -->
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px;margin-bottom:2px">
+        <span style="color:var(--muted)">📦 Lagerkosten: <span id="g-storage-rate" style="color:var(--red);font-weight:600">0€/10s</span></span>
+        <span style="color:var(--muted)">Gesamt bezahlt: <span id="g-storage-total" style="color:var(--red)">0€</span></span>
+      </div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:4px">0,002 €/L alle 10s – weniger Lager = weniger Kosten</div>
+
+      <!-- LOW TANK WARNING -->
+      <div class="tank-warning" id="tank-warn">⚠️ Tank fast leer – jetzt nachkaufen!</div>
+
+      <!-- INSTANT BUY PILLS -->
+      <div class="lbl" style="margin-bottom:0">Sofort kaufen (1 Tipp = direkt im Lager)</div>
+      <div class="buy-grid">
+        <div class="buy-pill" onclick="instaBuy(500)">
+          <div class="pl">500 L</div>
+          <div class="pc" id="bc-500">710 €</div>
+        </div>
+        <div class="buy-pill" onclick="instaBuy(2000)">
+          <div class="pl">2.000 L</div>
+          <div class="pc" id="bc-2000">2.840 €</div>
+        </div>
+        <div class="buy-pill" onclick="instaBuy(5000)">
+          <div class="pl">5.000 L</div>
+          <div class="pc" id="bc-5000">7.100 €</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAT ROW -->
+    <div class="stat-row">
+      <div class="sc"><div class="lbl">Letzter Verkauf</div><div class="sv" id="g-last">–</div></div>
+      <div class="sc"><div class="lbl">Kunden</div><div class="sv gold" id="g-cnt">0</div></div>
+      <div class="sc"><div class="lbl">Marktanteil</div><div class="sv" id="g-share">–</div></div>
+    </div>
+
+    <!-- ═══ LIVE PREIS-CHART (Börsen-Style) ═══ -->
+    <div style="background:#070910;border:1px solid var(--line);border-radius:12px;padding:10px 10px 6px;margin-bottom:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink .8s ease-in-out infinite"></div>
+          <span style="font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase">Benzinpreise Live</span>
+        </div>
+        <div id="chart-legend" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end"></div>
+      </div>
+      <canvas id="price-chart" style="width:100%;height:140px;display:block"></canvas>
+    </div>
+
+    <!-- ═══ PREIS (immer sichtbar) ═══ -->
+    <div class="card">
+      <div class="lbl">Mein Verkaufspreis</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px">
+        <button onclick="priceStep(-1)" style="width:46px;height:46px;border-radius:50%;background:var(--card2);border:1.5px solid var(--line2);color:var(--red);font-size:20px;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent">▼</button>
+        <div class="price-big" id="g-pval">1,59</div>
+        <button onclick="priceStep(1)" style="width:46px;height:46px;border-radius:50%;background:var(--card2);border:1.5px solid var(--line2);color:var(--green);font-size:20px;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent">▲</button>
+      </div>
+      <input type="range" class="slider" id="g-pslider" min="100" max="280" value="159" oninput="onPrice(this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:-4px"><span>1,00 €</span><span>2,80 €</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:8px">
+        <span style="color:var(--muted)">Einkauf: <span id="g-bref" style="color:var(--text);font-weight:500">–</span></span>
+        <span>Marge: <span id="g-marg" style="font-weight:600">–</span></span>
+      </div>
+    </div>
+
+    <!-- KI TIP -->
+    <div class="card" style="padding:12px 14px">
+      <div class="lbl">🤖 KI-Marktberater</div>
+      <div class="ai-box" id="g-ai">Analysiere Marktlage…</div>
+    </div>
+
+    <!-- LIVE MARKT -->
+    <div class="lbl" style="margin-bottom:6px">Live Markt</div>
+    <div id="g-market"></div>
+
+  </div>
+
+  <!-- FIXED BOTTOM: Spiel beenden (host) / Rangliste -->
+  <div id="end-btn-wrap">
+    <button class="btn btn-red" id="btn-end" onclick="endGame()" style="display:none">🛑 Spiel beenden</button>
+    <button class="btn btn-ghost" onclick="endGame()" id="btn-end-guest" style="display:none">🏁 Ergebnis anzeigen</button>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div class="screen" id="s-final">
+  <div class="trophy">🏆</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--fuel);text-align:center;margin-bottom:4px" id="final-w">–</div>
+  <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:20px">SpritKrieg-Champion</div>
+  <div class="card"><div class="lbl">Endauswertung</div><div id="final-r"></div></div>
+  <div class="card"><div class="lbl">🤖 Spielanalyse</div><div class="ai-box" id="final-ai">Lade…</div></div>
+  <button class="btn btn-primary" style="margin-top:12px" onclick="showScreen('s-start')">🔄 Neues Spiel</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// GROSSE ISOMETRISCHE STADT  (30×30, Straßen alle 4 Felder)
+// ══════════════════════════════════════════════════════════════
+const C_FG=['#E8A020','#3498DB','#2ECC71','#E74C3C','#9B59B6','#E67E22',
+            '#1ABC9C','#F1C40F','#E91E63','#00BCD4','#8BC34A','#FF5722',
+            '#607D8B','#795548','#03A9F4','#4CAF50','#FF9800','#9C27B0',
+            '#F44336','#2196F3','#009688','#CDDC39','#673AB7','#FF7043'];
+const C_BG=['rgba(232,160,32,.22)','rgba(52,152,219,.22)','rgba(46,204,113,.22)','rgba(231,76,60,.22)','rgba(155,89,182,.22)','rgba(230,126,34,.22)','rgba(26,188,156,.22)','rgba(241,196,15,.22)','rgba(233,30,99,.22)','rgba(0,188,212,.22)','rgba(139,195,74,.22)','rgba(255,87,34,.22)','rgba(96,125,139,.22)','rgba(121,85,72,.22)','rgba(3,169,244,.22)','rgba(76,175,80,.22)','rgba(255,152,0,.22)','rgba(156,39,176,.22)','rgba(244,67,54,.22)','rgba(33,150,243,.22)','rgba(0,150,136,.22)','rgba(205,220,57,.22)','rgba(103,58,183,.22)','rgba(255,112,67,.22)'];
+const AVTS=['⛽','🚗','🏎','🚕','🚙','🛻','🚌','🏍','🚑','🚒','🚓','🚐',
+            '🚚','🚛','🛺','🛵','🚲','🛴','🚔','🚖','🚗','🏎','🚕','🚙'];
+const CAR_COLS=['#E74C3C','#3498DB','#27AE60','#F39C12','#9B59B6','#ECF0F1','#E67E22','#1ABC9C','#E91E63','#00BCD4'];
+
+// City grid constants
+const CITY_W=30,CITY_H=30,BLOCK=4;  // 30×30 tiles, streets every 4
+const ISO_TW_BASE=58,ISO_TH_BASE=29;  // vergrößert für bessere Lesbarkeit
+let ISO_ZOOM=1;
+let ISO_TW=ISO_TW_BASE,ISO_TH=ISO_TH_BASE;
+let ISO_OX=200,ISO_OY=60;
+function applyIsoZoom(){ISO_TW=ISO_TW_BASE*ISO_ZOOM;ISO_TH=ISO_TH_BASE*ISO_ZOOM;}
+function isoZoom(dir){
+  ISO_ZOOM=Math.max(.55,Math.min(1.5,+(ISO_ZOOM+dir*.15).toFixed(2)));
+  applyIsoZoom();
+  toast('🔍 Zoom '+Math.round(ISO_ZOOM*100)+'%',1200);
+}
+function isoRecenter(){ISO.panX=0;ISO.panY=0;ISO_ZOOM=1;applyIsoZoom();toast('🎯 Ansicht zentriert',1200);}
+
+// Alle HUD-Daten (Preis, Info-Panel, Legende, fixierte Kennzahlenleiste) per Button ein-/ausblenden
+let isoHudVisible=true;
+function toggleHudVisibility(){
+  isoHudVisible=!isoHudVisible;
+  ['iso-price-hud','iso-info-hud','iso-legend'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.classList.toggle('hud-hidden',!isoHudVisible);
+  });
+  const stats=document.getElementById('fixed-stats');
+  if(stats)stats.style.display=isoHudVisible?'flex':'none';
+  const btn=document.getElementById('iso-hud-toggle');
+  if(btn)btn.textContent=isoHudVisible?'👁':'🙈';
+  toast(isoHudVisible?'👁 Daten eingeblendet':'🙈 Daten ausgeblendet',1200);
+}
+
+// 24 fixed station positions at road intersections
+const CITY_STATIONS=[
+  {gx:0,gy:0},{gx:8,gy:0},{gx:16,gy:0},{gx:24,gy:0},
+  {gx:4,gy:4},{gx:12,gy:4},{gx:20,gy:4},{gx:28,gy:4},
+  {gx:0,gy:8},{gx:8,gy:8},{gx:16,gy:8},{gx:24,gy:8},
+  {gx:4,gy:12},{gx:12,gy:12},{gx:20,gy:12},{gx:28,gy:12},
+  {gx:0,gy:16},{gx:8,gy:16},{gx:16,gy:16},{gx:24,gy:16},
+  {gx:4,gy:20},{gx:12,gy:20},{gx:20,gy:20},{gx:28,gy:20},
+  {gx:0,gy:24},{gx:8,gy:24},{gx:16,gy:24},{gx:24,gy:24},
+  {gx:4,gy:28},{gx:12,gy:28},{gx:20,gy:28},{gx:28,gy:28},
+];
+
+function isRoad(gx,gy){return gx%BLOCK===0||gy%BLOCK===0;}
+function isIntersection(gx,gy){return gx%BLOCK===0&&gy%BLOCK===0;}
+function cityRand(gx,gy,s){return((gx*7919+gy*7879+s*7877)%10000)/10000;}
+function g2s(gx,gy){return{x:ISO_OX+(gx-gy)*ISO_TW/2,y:ISO_OY+(gx+gy)*ISO_TH/2};}
+function dkC(h,a){return'#'+[2,4,6].map(i=>Math.max(0,parseInt(h.slice(i,i+2),16)-a).toString(16).padStart(2,'0')).join('');}
+function ltC(h,a){return'#'+[2,4,6].map(i=>Math.min(255,parseInt(h.slice(i,i+2),16)+a).toString(16).padStart(2,'0')).join('');}
+
+// ── ISO OBJECT ──────────────────────────
+const ISO={el:null,ctx:null,W:400,H:420,dpr:1,frame:0,rafId:null,on:false,cars:[],
+           panX:0,panY:0,panSX:0,panSY:0,panning:false,clouds:[]};
+
+function initIso(){
+  ISO.el=document.getElementById('road-canvas');if(!ISO.el)return;
+  ISO.dpr=Math.min(window.devicePixelRatio||1,2);
+  const r=ISO.el.getBoundingClientRect();
+  ISO.W=Math.max(r.width||380,280);ISO.H=420;
+  ISO.el.width=Math.round(ISO.W*ISO.dpr);
+  ISO.el.height=Math.round(ISO.H*ISO.dpr);
+  ISO.ctx=ISO.el.getContext('2d');
+  ISO.ctx.scale(ISO.dpr,ISO.dpr);
+  ISO_OX=ISO.W/2;ISO_OY=78;
+  if(!ISO.clouds.length){
+    for(let i=0;i<5;i++)ISO.clouds.push({x:Math.random()*ISO.W,y:14+Math.random()*44,s:.5+Math.random()*.7,spd:.06+Math.random()*.08});
+  }
+
+  // Pan – Achse wird erst nach kleiner Bewegung entschieden: senkrechtes Wischen
+  // scrollt die Seite normal (native), waagerechtes Wischen verschiebt die Karte.
+  const el=ISO.el;
+  const PAN_THRESHOLD=8;
+  el.addEventListener('touchstart',e=>{
+    if(e.touches.length===1){
+      ISO.panning=true;ISO.dragAxis=null;
+      ISO.touchStartX=e.touches[0].clientX;ISO.touchStartY=e.touches[0].clientY;
+      ISO.panSX=e.touches[0].clientX-ISO.panX;ISO.panSY=e.touches[0].clientY-ISO.panY;
+    }
+  },{passive:true});
+  el.addEventListener('touchmove',e=>{
+    if(!ISO.panning||e.touches.length!==1)return;
+    const tx=e.touches[0].clientX,ty=e.touches[0].clientY;
+    if(ISO.dragAxis===null){
+      const dx=tx-ISO.touchStartX,dy=ty-ISO.touchStartY;
+      if(Math.abs(dx)<PAN_THRESHOLD&&Math.abs(dy)<PAN_THRESHOLD)return;
+      ISO.dragAxis=Math.abs(dx)>Math.abs(dy)?'x':'y';
+      if(ISO.dragAxis==='y'){ISO.panning=false;return;} // senkrecht: Seite normal scrollen lassen
+    }
+    if(ISO.dragAxis==='x'){
+      ISO.panX=Math.max(-600,Math.min(600,tx-ISO.panSX));
+      ISO.panY=Math.max(-500,Math.min(500,ty-ISO.panSY));
+      e.preventDefault();
+    }
+  },{passive:false});
+  el.addEventListener('touchend',()=>{ISO.panning=false;ISO.dragAxis=null;},{passive:true});
+  el.addEventListener('mousedown',e=>{ISO.panning=true;ISO.dragAxis='x';ISO.panSX=e.clientX-ISO.panX;ISO.panSY=e.clientY-ISO.panY;});
+  window.addEventListener('mousemove',e=>{if(ISO.panning&&ISO.dragAxis==='x'){ISO.panX=Math.max(-600,Math.min(600,e.clientX-ISO.panSX));ISO.panY=Math.max(-500,Math.min(500,e.clientY-ISO.panSY));}});
+  window.addEventListener('mouseup',()=>{ISO.panning=false;ISO.dragAxis=null;});
+
+  if(!ISO.on){ISO.on=true;isoLoop();}
+}
+function stopIso(){ISO.on=false;if(ISO.rafId)cancelAnimationFrame(ISO.rafId);}
+function isoLoop(){if(!ISO.on)return;ISO.frame++;renderIso();ISO.rafId=requestAnimationFrame(isoLoop);}
+
+// ── PRIMITIVES ──────────────────────────
+function isoDiamond(ctx,sx,sy,fill,stroke){
+  ctx.beginPath();
+  ctx.moveTo(sx,sy-ISO_TH/2);ctx.lineTo(sx+ISO_TW/2,sy);
+  ctx.lineTo(sx,sy+ISO_TH/2);ctx.lineTo(sx-ISO_TW/2,sy);
+  ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=.5;ctx.stroke();}
+}
+function isoBox(ctx,sx,sy,bh,cTop,cLeft,cRight,ol){
+  const N={x:sx,y:sy-ISO_TH/2},E={x:sx+ISO_TW/2,y:sy},
+        S={x:sx,y:sy+ISO_TH/2},W={x:sx-ISO_TW/2,y:sy};
+  const f=(pts,col)=>{
+    ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+    ctx.closePath();ctx.fillStyle=col;ctx.fill();
+    if(ol){ctx.strokeStyle=ol;ctx.lineWidth=.5;ctx.stroke();}
+  };
+  f([W,S,{x:S.x,y:S.y-bh},{x:W.x,y:W.y-bh}],cLeft);
+  f([S,E,{x:E.x,y:E.y-bh},{x:S.x,y:S.y-bh}],cRight);
+  f([{x:N.x,y:N.y-bh},{x:E.x,y:E.y-bh},{x:S.x,y:S.y-bh},{x:W.x,y:W.y-bh}],cTop);
+}
+function isoTree(ctx,sx,sy){
+  ctx.fillStyle='#3D2209';ctx.fillRect(sx-1.5,sy-ISO_TH/2-12,3,8);
+  [[0,13,10,5,'#1B5E1F'],[0,8,7.5,3.8,'#236B27'],[0,3,5,2.8,'#2E7D32']].forEach(([ox,h,rw,rh,c])=>{
+    ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(sx+ox,sy-ISO_TH/2-h,rw,rh,0,0,Math.PI*2);ctx.fill();
+  });
+}
+
+// ── CITY TILE DRAWING ──────────────────
+function drawCityTile(ctx,gx,gy,sx,sy,frame){
+  const r1=cityRand(gx,gy,1),r2=cityRand(gx,gy,2),r3=cityRand(gx,gy,3);
+  const bx=Math.floor(gx/BLOCK),by=Math.floor(gy/BLOCK);
+  const blockR=cityRand(bx,by,42);
+
+  if(isRoad(gx,gy)){
+    // Road base with sidewalk curb edge
+    isoDiamond(ctx,sx,sy,'#26262E','#34343E');
+    ctx.strokeStyle='rgba(180,180,190,.18)';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(sx,sy-ISO_TH*.46);ctx.lineTo(sx+ISO_TW*.46,sy);
+    ctx.lineTo(sx,sy+ISO_TH*.46);ctx.lineTo(sx-ISO_TW*.46,sy);
+    ctx.closePath();ctx.stroke();
+    // Animated dashes
+    const isH=isRoad(gx,gy)&&!isRoad(gx+1,gy)!==!isRoad(gx-1,gy);
+    if(gx%BLOCK===0&&gy%BLOCK!==0){
+      ctx.strokeStyle='rgba(255,255,60,.28)';ctx.lineWidth=1;ctx.setLineDash([4,7]);
+      ctx.lineDashOffset=-(frame*.4)%11;
+      ctx.beginPath();ctx.moveTo(sx,sy-ISO_TH*.35);ctx.lineTo(sx,sy+ISO_TH*.35);ctx.stroke();ctx.setLineDash([]);
+    } else if(gy%BLOCK===0&&gx%BLOCK!==0){
+      ctx.strokeStyle='rgba(255,255,60,.28)';ctx.lineWidth=1;ctx.setLineDash([4,7]);
+      ctx.lineDashOffset=-(frame*.4)%11;
+      ctx.beginPath();ctx.moveTo(sx-ISO_TW*.35,sy);ctx.lineTo(sx+ISO_TW*.35,sy);ctx.stroke();ctx.setLineDash([]);
+    }
+    return;
+  }
+
+  // City block interior tile
+  // Check if park block
+  if(blockR<0.12){
+    isoDiamond(ctx,sx,sy,'#256B2A',null);
+    if(r1>0.6)isoTree(ctx,sx,sy);
+    return;
+  }
+
+  // Building tile
+  isoDiamond(ctx,sx,sy,'#181828',null);
+  const heightBase=blockR<0.35?8:blockR<0.70?14:20;
+  const h=heightBase*(0.6+r2*0.8);
+
+  // Building color palette by block type – bunter, an SimCity-Zonenfarben angelehnt
+  const palettes=[
+    ['#C9A876','#B08F5E','#8F7148'],  // Wohnhaus beige/sandstein
+    ['#4A5568','#3A4458','#2D3548'],  // Büro-Glas
+    ['#B8623F','#96502F','#743E22'],  // Wohnhaus Ziegel/orange
+    ['#3A5A5C','#2A4A4C','#1C3A3C'],  // Büro teal
+    ['#8A8F8C','#70746F','#585C58'],  // Industrie grau
+    ['#D9C05A','#B89E42','#8F7B2E'],  // Wohnhaus gelb
+  ];
+  const pal=palettes[Math.floor(blockR*6%6)];
+  const topC=ltC(pal[0],12),rightC=pal[0],leftC=pal[1];
+
+  isoBox(ctx,sx,sy,h,topC,rightC,leftC,'rgba(0,0,0,.3)');
+
+  // Dachaufbauten (Wassertank / Lüftung) für SimCity-typische Detailtiefe
+  if(r1<0.16&&h>8){
+    ctx.fillStyle=dkC(pal[1],10);
+    ctx.beginPath();ctx.ellipse(sx-ISO_TW*.08,sy-h-4,3.2,2,0,0,Math.PI*2);ctx.fill();
+    ctx.fillRect(sx-ISO_TW*.08-3.2,sy-h-4,6.4,5);
+  }
+
+  // Windows (on taller buildings) – rows scale with height for more detail
+  if(h>16){
+    const rows=Math.max(2,Math.floor(h/11));
+    for(let row=0;row<rows;row++){
+      const wy=sy-h*.22-row*(h*.62/rows);
+      const litR=cityRand(gx,gy,90+row);
+      const litL=cityRand(gx,gy,190+row);
+      ctx.fillStyle=litR>0.55?'rgba(255,220,110,.65)':'rgba(200,225,245,.18)';
+      ctx.fillRect(sx+ISO_TW*.16,wy,3.4,5.5);
+      ctx.fillStyle=litL>0.6?'rgba(180,225,255,.55)':'rgba(200,225,245,.14)';
+      ctx.fillRect(sx-ISO_TW*.18,wy,3.4,5.5);
+    }
+  }
+  // Rooftop antenna + blinking light on skyscrapers
+  if(h>20){
+    ctx.fillStyle='#555';ctx.fillRect(sx-1,sy-h-10,2,10);
+    ctx.globalAlpha=.5+.5*Math.sin(ISO.frame*.07+gx+gy);
+    ctx.fillStyle='#F00';ctx.beginPath();ctx.arc(sx,sy-h-10,2.2,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+  // Rooftop AC unit on mid-size buildings
+  else if(h>10&&r3>0.45){
+    ctx.fillStyle=dkC(pal[0],20);
+    ctx.fillRect(sx-4,sy-h-4,8,4);
+  }
+}
+
+// ── STATION DRAWING ─────────────────────
+function isoStation(ctx,sx,sy,player,idx,allPlayers){
+  const col=C_FG[idx%C_FG.length],{frame}=ISO;
+  const BH=50*ISO_ZOOM;
+  // Vorplatz (größer als eine normale Kachel, damit die Station heraussticht)
+  ctx.beginPath();
+  ctx.moveTo(sx,sy-ISO_TH*.85);ctx.lineTo(sx+ISO_TW*.85,sy);
+  ctx.lineTo(sx,sy+ISO_TH*.85);ctx.lineTo(sx-ISO_TW*.85,sy);
+  ctx.closePath();ctx.fillStyle='#2A2A38';ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;ctx.stroke();
+  // Base
+  isoDiamond(ctx,sx,sy,'#1A1A2A',null);
+  // Main building
+  isoBox(ctx,sx,sy,BH,ltC(col,8),col,dkC(col,40),'rgba(0,0,0,.35)');
+  // Building windows / doors
+  ctx.fillStyle='rgba(200,235,255,.55)';
+  ctx.fillRect(sx-ISO_TW*.06,sy-BH*.55,ISO_TW*.14,BH*.32);
+  ctx.fillStyle='rgba(255,255,255,.12)';
+  ctx.fillRect(sx+ISO_TW*.14,sy-BH*.4,ISO_TW*.1,BH*.22);
+  // Roof
+  isoBox(ctx,sx+ISO_TW*.06,sy-BH,11*ISO_ZOOM,ltC(col,22),dkC(col,28),dkC(col,14));
+  // Canopy
+  isoBox(ctx,sx+ISO_TW*.09,sy-BH*.52,5*ISO_ZOOM,dkC(col,10),dkC(col,50),dkC(col,38));
+  // Canopy underlight glow
+  ctx.globalAlpha=.5+.25*Math.sin(frame*.05+idx);
+  ctx.fillStyle='rgba(255,250,220,.4)';
+  ctx.beginPath();ctx.ellipse(sx+ISO_TW*.09,sy-BH*.3,ISO_TW*.32,ISO_TH*.22,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
+  // Pump island
+  isoBox(ctx,sx+ISO_TW*.28,sy+ISO_TH*.2,15*ISO_ZOOM,'#B0B0B0',dkC('#9E9E9E',35),dkC('#9E9E9E',20));
+  ctx.strokeStyle='#666';ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(sx+ISO_TW*.4,sy+ISO_TH*.1-6);ctx.lineTo(sx+ISO_TW*.48,sy+ISO_TH*.18-6);ctx.stroke();
+  ctx.fillStyle='#3AA0E0';ctx.beginPath();ctx.arc(sx+ISO_TW*.28,sy+ISO_TH*.2-16*ISO_ZOOM,2.2,0,Math.PI*2);ctx.fill();
+
+  // ── BIG FLOATING PRICE BOARD ──
+  const price=player.price||0;
+  const bw=86*ISO_ZOOM,bh2=46*ISO_ZOOM;const bx=sx-bw/2,by2=sy-BH-bh2-10;
+  ctx.fillStyle='rgba(0,0,0,.5)';
+  ctx.fillRect(bx+2,by2+2,bw,bh2);  // shadow
+  ctx.fillStyle='#06060F';ctx.fillRect(bx,by2,bw,bh2);
+  ctx.strokeStyle=price>0?col:'#2A2A40';ctx.lineWidth=2;
+  ctx.globalAlpha=price>0?(.75+.25*Math.sin(frame*.04+idx)):0.35;
+  ctx.strokeRect(bx,by2,bw,bh2);ctx.globalAlpha=1;
+  // Scan lines
+  for(let li=by2+5;li<by2+bh2-5;li+=5){ctx.fillStyle='rgba(255,255,255,.03)';ctx.fillRect(bx+3,li,bw-6,2);}
+  // BENZIN top label
+  ctx.font=`bold ${8*ISO_ZOOM|0}px monospace`;ctx.fillStyle='rgba(255,255,255,.4)';ctx.textAlign='center';
+  ctx.fillText('BENZIN',sx,by2+12*ISO_ZOOM);
+  // Price – large LED font
+  ctx.font=`bold ${21*ISO_ZOOM|0}px "Bebas Neue",Impact,monospace`;
+  ctx.fillStyle=price>0?col:'#2A2A40';
+  ctx.shadowBlur=price>0?12:0;ctx.shadowColor=col;
+  ctx.fillText(price>0?fmt(price)+' €':'GESCHL.',sx,by2+36*ISO_ZOOM);
+  ctx.shadowBlur=0;
+
+  // Team name under board (readable pill)
+  const nm=(player.name||'').slice(0,13);
+  ctx.font=`bold ${9*ISO_ZOOM|0}px sans-serif`;
+  const nw=ctx.measureText(nm).width+12;
+  ctx.fillStyle='rgba(6,6,15,.7)';
+  ctx.fillRect(sx-nw/2,sy-BH-5-11,nw,15);
+  ctx.fillStyle='#fff';ctx.textAlign='center';
+  ctx.fillText(nm,sx,sy-BH-5-1);
+
+  // Street light
+  const slx=sx-ISO_TW*.42,sly=sy-ISO_TH*.32;
+  ctx.fillStyle='#444';ctx.fillRect(slx-1,sly-BH-18,2,BH+18);
+  ctx.fillStyle='#2A2A2A';ctx.fillRect(slx-7,sly-BH-18,8,3);
+  ctx.fillStyle='#FFFDE0';ctx.beginPath();ctx.arc(slx-5,sly-BH-17,2.5*ISO_ZOOM,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.12;ctx.fillStyle='#FFFDE0';
+  ctx.beginPath();ctx.arc(slx-5,sly-BH-17,17*ISO_ZOOM,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  // Cheapest glow
+  const vps=allPlayers.filter(p=>p.price>0&&p.inventory>0).map(p=>p.price);
+  if(vps.length&&price>0&&player.inventory>0&&Math.min(...vps)===price){
+    ctx.strokeStyle='#FFD700';ctx.lineWidth=3;
+    ctx.globalAlpha=.35+.3*Math.sin(frame*.09);
+    ctx.beginPath();
+    ctx.moveTo(sx,sy-ISO_TH/2-5);ctx.lineTo(sx+ISO_TW/2+6,sy+6);
+    ctx.lineTo(sx,sy+ISO_TH/2+6);ctx.lineTo(sx-ISO_TW/2-6,sy+6);
+    ctx.closePath();ctx.stroke();ctx.globalAlpha=1;
+    ctx.fillStyle='#FFD700';ctx.font=`bold ${10*ISO_ZOOM|0}px sans-serif`;ctx.textAlign='center';
+    ctx.fillText('★ GÜNSTIG',sx,by2-8);
+  }
+  if(player.inventory<=0){
+    ctx.fillStyle='rgba(231,76,60,.9)';ctx.font=`bold ${10*ISO_ZOOM|0}px sans-serif`;ctx.textAlign='center';
+    ctx.fillText('LEER ⚠',sx,by2-8);
+  }
+}
+
+// Empty/inactive station (gray)
+function isoEmptyStation(ctx,sx,sy){
+  const h=26*ISO_ZOOM;
+  isoDiamond(ctx,sx,sy,'#141420',null);
+  isoBox(ctx,sx,sy,h,'#282838','#222232','#1A1A28','rgba(0,0,0,.2)');
+  ctx.font=`bold ${8*ISO_ZOOM|0}px monospace`;ctx.fillStyle='rgba(255,255,255,.18)';ctx.textAlign='center';
+  ctx.fillText('FREI',sx,sy-h-6);
+}
+
+// ── MAIN SCENE RENDER ──────────────────
+function renderIso(){
+  const{ctx,W,H,frame}=ISO;
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#08091A');sky.addColorStop(1,'#141A30');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+
+  // Drifting clouds (fixed, above city, no pan)
+  ctx.save();
+  ISO.clouds.forEach(c=>{
+    c.x+=c.spd;if(c.x>W+60)c.x=-60;
+    ctx.globalAlpha=.12*c.s+.05;
+    ctx.fillStyle='#fff';
+    ctx.beginPath();
+    ctx.ellipse(c.x,c.y,26*c.s,9*c.s,0,0,Math.PI*2);
+    ctx.ellipse(c.x+18*c.s,c.y+3,18*c.s,7*c.s,0,0,Math.PI*2);
+    ctx.ellipse(c.x-16*c.s,c.y+2,16*c.s,6*c.s,0,0,Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  // Pan hint
+  if(ISO.panX===0&&ISO.panY===0){
+    ctx.fillStyle='rgba(255,255,255,.18)';ctx.font='10px sans-serif';ctx.textAlign='right';
+    ctx.fillText('☞ Karte verschieben',W-10,H-8);
+  }
+
+  ctx.save();
+  ctx.translate(ISO.panX||0,ISO.panY||0);
+
+  const ps=G.players||[];
+  const list=[];
+
+  // Tiles (painter's algorithm)
+  for(let d=0;d<CITY_W+CITY_H-1;d++){
+    for(let gx=0;gx<CITY_W;gx++){
+      const gy=d-gx;if(gy<0||gy>=CITY_H)continue;
+      const{x,y}=g2s(gx,gy);
+      const cgx=gx,cgy=gy,sx=x,sy=y;
+      list.push({d:d+.1,fn:()=>drawCityTile(ctx,cgx,cgy,sx,sy,frame)});
+    }
+    // Active player stations
+    ps.forEach((p,i)=>{
+      const st=CITY_STATIONS[i];if(!st)return;
+      if(st.gx+st.gy===d){
+        const{x,y}=g2s(st.gx,st.gy);
+        list.push({d:d+.7,fn:()=>isoStation(ctx,x,y,p,i,ps)});
+      }
+    });
+    // Empty station slots (beyond active players)
+    CITY_STATIONS.forEach((st,i)=>{
+      if(i<ps.length)return;  // handled above
+      if(st.gx+st.gy===d){
+        const{x,y}=g2s(st.gx,st.gy);
+        list.push({d:d+.7,fn:()=>isoEmptyStation(ctx,x,y)});
+      }
+    });
+  }
+
+  // Spawn cars
+  if(frame%10===0&&ISO.cars.length<140)isoSpawnCar();
+  ISO.cars=ISO.cars.filter(c=>c.alive);
+  ISO.cars.forEach(c=>{
+    isoMoveCar(c);
+    const{x,y}=g2s(c.x,c.y);
+    list.push({d:c.x+c.y+.9,fn:()=>isoCar(ctx,x,y,c)});
+  });
+
+  list.sort((a,b)=>a.d-b.d);list.forEach(r=>r.fn());
+  ctx.restore();
+
+  // Vignette (fixed, no pan)
+  const vig=ctx.createRadialGradient(W/2,H/2,H*.15,W/2,H/2,H*.85);
+  vig.addColorStop(0,'rgba(0,0,0,0)');vig.addColorStop(1,'rgba(0,0,0,.5)');
+  ctx.fillStyle=vig;ctx.fillRect(0,0,W,H);
+}
+
+// ── CAR SYSTEM ─────────────────────────
+// Baut einen straßentreuen Weg vom Kartenrand zu einer bestimmten Tankstelle und lässt ein Auto losfahren
+function spawnCarToStation(stIdx){
+  const st=CITY_STATIONS[stIdx];if(!st)return;
+  const side=Math.floor(Math.random()*4);
+  let ex,ey;
+  if(side===0){ex=Math.floor(Math.random()*8)*BLOCK;ey=-1.5;}      // oben, fährt auf Spalte ex nach unten
+  else if(side===1){ex=CITY_W+1.5;ey=Math.floor(Math.random()*8)*BLOCK;} // rechts, fährt auf Zeile ey nach links
+  else if(side===2){ex=Math.floor(Math.random()*8)*BLOCK;ey=CITY_H+1.5;} // unten, fährt auf Spalte ex nach oben
+  else{ex=-1.5;ey=Math.floor(Math.random()*8)*BLOCK;}              // links, fährt auf Zeile ey nach rechts
+  let waypoints;
+  if(side===0||side===2){
+    waypoints=[{x:ex,y:st.gy},{x:st.gx,y:st.gy}];
+  }else{
+    waypoints=[{x:st.gx,y:ey},{x:st.gx,y:st.gy}];
+  }
+  ISO.cars.push({
+    x:ex,y:ey,
+    waypoints,
+    wpIdx:0,spd:.025+Math.random()*.02,
+    col:CAR_COLS[0|Math.random()*CAR_COLS.length],
+    type:pickCarType(),
+    heading:0,
+    state:'drive',parkT:0,alive:true,exitX:ex,exitY:ey,
+  });
+}
+function isoSpawnCar(){
+  const ps=G.players||[];
+  const active=ps.filter(p=>p.inventory>0&&p.price>0);
+  if(!active.length)return;
+  // Einfahrtspunkt zuerst festlegen, damit Nähe zur Tankstelle mitentscheiden kann
+  const side=Math.floor(Math.random()*4);
+  let ex,ey;
+  if(side===0){ex=Math.floor(Math.random()*8)*BLOCK;ey=-1.5;}
+  else if(side===1){ex=CITY_W+1.5;ey=Math.floor(Math.random()*8)*BLOCK;}
+  else if(side===2){ex=Math.floor(Math.random()*8)*BLOCK;ey=CITY_H+1.5;}
+  else{ex=-1.5;ey=Math.floor(Math.random()*8)*BLOCK;}
+
+  // Zielwahl: günstiger Preis UND Nähe zählen beide – nicht mehr nur die global günstigste Station.
+  const mn=Math.min(...active.map(p=>p.price));
+  const scored=active.map(p=>{
+    const st0=CITY_STATIONS[p.idx];
+    const dist=st0?Math.hypot(st0.gx-ex,st0.gy-ey):30;
+    const priceScore=Math.pow(mn/p.price,3.5);
+    const distScore=Math.pow(10/(10+dist),1.6);
+    return {p,weight:priceScore*distScore*(0.6+Math.random()*.8)};
+  });
+  const totW=scored.reduce((s,x)=>s+x.weight,0);
+  let rw=Math.random()*totW,chosen=scored[0].p;
+  for(const s of scored){rw-=s.weight;if(rw<=0){chosen=s.p;break;}}
+  spawnCarToStation(chosen.idx);
+}
+// Fahrzeugtypen: unterschiedliche Proportionen für optische Vielfalt
+const CAR_TYPES=[
+  {id:'sedan',w:1,   l:1,   h:1,   wt:34},
+  {id:'suv',  w:1.08,l:1.05,h:1.4, wt:20},
+  {id:'sport',w:1.18,l:.85, h:.68, wt:14},
+  {id:'van',  w:1.3, l:1.15,h:1.55,wt:16},
+  {id:'moto', w:.5,  l:.5,  h:.55, wt:16},
+];
+function pickCarType(){
+  const tot=CAR_TYPES.reduce((s,t)=>s+t.wt,0);
+  let r=Math.random()*tot;
+  for(const t of CAR_TYPES){r-=t.wt;if(r<=0)return t;}
+  return CAR_TYPES[0];
+}
+// Berechnet die Blickrichtung (Bildschirmwinkel) aus einem Bewegungsvektor im Gitter
+function carHeadingAngle(dx,dy){
+  const sxd=(dx-dy)*ISO_TW/2, syd=(dx+dy)*ISO_TH/2;
+  if(Math.abs(sxd)<1e-6&&Math.abs(syd)<1e-6)return 0;
+  return Math.atan2(sxd,-syd);
+}
+function isoMoveCar(c){
+  if(c.state==='drive'){
+    const wp=c.waypoints[c.wpIdx];
+    if(!wp){ if(c.exiting){c.alive=false;}else{c.state='park';c.parkT=0;} return; }
+    const dx=wp.x-c.x,dy=wp.y-c.y,d=Math.hypot(dx,dy);
+    if(d>0.0005)c.heading=carHeadingAngle(dx,dy);
+    if(d<c.spd*1.2){
+      c.x=wp.x;c.y=wp.y;c.wpIdx++;
+      if(c.wpIdx>=c.waypoints.length){
+        if(c.exiting){c.alive=false;}else{c.state='park';c.parkT=0;}
+      }
+    }else{c.x+=dx/d*c.spd;c.y+=dy/d*c.spd;}
+  } else if(c.state==='park'){
+    c.parkT++;
+    if(c.parkT>90){
+      // Ausfahrt: exakt derselbe Straßenweg rückwärts (bleibt auf der Straße)
+      c.waypoints=[c.waypoints[0],{x:c.exitX,y:c.exitY}];
+      c.wpIdx=0;c.exiting=true;c.state='drive';
+    }
+  }
+}
+// Zeichnet einen "schwebenden" Quader zwischen zwei Höhen (für Kabine auf Chassis)
+function isoCarBox(ctx,cx,cy,cw,ch,hBase,hTop,colTop,colL,colR){
+  const N={x:cx,y:cy-ch/2},E={x:cx+cw/2,y:cy},S={x:cx,y:cy+ch/2},W={x:cx-cw/2,y:cy};
+  const up=(p,h)=>({x:p.x,y:p.y-h});
+  const Nb=up(N,hBase),Eb=up(E,hBase),Sb=up(S,hBase),Wb=up(W,hBase);
+  const Nt=up(N,hTop),Et=up(E,hTop),St=up(S,hTop),Wt=up(W,hTop);
+  const f=(pts,c)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fillStyle=c;ctx.fill();ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=.6;ctx.stroke();};
+  f([Wb,Sb,St,Wt],colL);
+  f([Sb,Eb,Et,St],colR);
+  f([Nt,Et,St,Wt],colTop);
+}
+function isoCar(ctx,sx,sy,car){
+  const t=car.type||CAR_TYPES[0];
+  const cw=ISO_TW*.6*t.w,ch=ISO_TH*.6*t.l,bh=8*ISO_ZOOM*t.h,col=car.col;
+  // Schatten unter dem Fahrzeug (bleibt unrotiert, einfache Bodenellipse)
+  ctx.globalAlpha=.25;ctx.fillStyle='#000';
+  ctx.beginPath();ctx.ellipse(sx,sy+2,cw*.52,ch*.3,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  // Fahrzeug wird um seine Bewegungsrichtung gedreht gezeichnet, damit die Front
+  // immer exakt in Fahrtrichtung zeigt (lokales Koordinatensystem, Ursprung = Fahrzeugmitte)
+  ctx.save();
+  ctx.translate(sx,sy);
+  ctx.rotate(car.heading||0);
+
+  const N={x:0,y:-ch/2},E={x:cw/2,y:0},S={x:0,y:ch/2},W={x:-cw/2,y:0};
+
+  if(t.id==='moto'){
+    // Motorrad: schmaler Körper, zwei Räder, Fahrer
+    ctx.fillStyle='#111';
+    ctx.beginPath();ctx.ellipse(N.x,N.y+2,2.4*ISO_ZOOM,1.6*ISO_ZOOM,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(S.x,S.y-2,2.4*ISO_ZOOM,1.6*ISO_ZOOM,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=dkC(col,10);ctx.lineWidth=3*ISO_ZOOM;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(N.x,N.y);ctx.lineTo(S.x,S.y);ctx.stroke();
+    ctx.fillStyle='#2A2A2A';
+    ctx.beginPath();ctx.arc(0,-bh*.75,3*ISO_ZOOM,0,Math.PI*2);ctx.fill(); // Helm/Fahrer
+    ctx.fillStyle=dkC(col,5);
+    ctx.fillRect(-2.5*ISO_ZOOM,-bh*.55,5*ISO_ZOOM,bh*.35); // Körper/Jacke
+    ctx.fillStyle='rgba(255,250,200,.9)';
+    ctx.beginPath();ctx.arc(N.x,N.y-1,1.1*ISO_ZOOM,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(220,40,40,.85)';
+    ctx.beginPath();ctx.arc(S.x,S.y-1,1*ISO_ZOOM,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  // Räder: dunkle Ellipsen exakt an den vier Karosserie-Ecken (angesetzt, nicht schwebend)
+  ctx.fillStyle='#161616';
+  const wheelPos=t.id==='van'||t.id==='suv'
+    ?[[W.x,W.y+ch*.16],[W.x,W.y-ch*.16],[E.x,E.y+ch*.16],[E.x,E.y-ch*.16]]
+    :[[W.x+cw*.02,W.y+ch*.2],[W.x+cw*.02,W.y-ch*.2],[E.x-cw*.02,E.y+ch*.2],[E.x-cw*.02,E.y-ch*.2]];
+  wheelPos.forEach(([wx,wy])=>{
+    ctx.beginPath();ctx.ellipse(wx,wy,2.4*ISO_ZOOM,1.6*ISO_ZOOM,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3A3A3A';ctx.beginPath();ctx.ellipse(wx,wy,1*ISO_ZOOM,.6*ISO_ZOOM,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#161616';
+  });
+
+  // Chassis (unterer Karosserieblock, volle Fahrzeugbreite)
+  isoCarBox(ctx,0,0,cw,ch,0,bh,ltC(col,10),dkC(col,42),dkC(col,24));
+
+  // Stoßstangen vorn/hinten
+  ctx.fillStyle='rgba(40,40,45,.85)';
+  ctx.fillRect(N.x-cw*.06,N.y-bh*.22,cw*.12,bh*.16);
+  ctx.fillRect(S.x-cw*.06,S.y-bh*.22,cw*.12,bh*.16);
+
+  if(t.id==='van'){
+    // Transporter: hoher, durchgehender Kastenaufbau statt separater Kabine
+    isoCarBox(ctx,0,0,cw*.96,ch*.96,bh,bh*2.5,ltC(col,18),dkC(col,32),dkC(col,16));
+    // Frontscheibe klein oben
+    ctx.fillStyle='rgba(160,215,250,.55)';
+    ctx.beginPath();ctx.moveTo(N.x,N.y-bh*2.5+3);ctx.lineTo(N.x+cw*.22,N.y-bh*2.1);ctx.lineTo(N.x,N.y-bh*1.9);ctx.lineTo(N.x-cw*.22,N.y-bh*2.1);ctx.closePath();ctx.fill();
+    // Dachlinie / Gepäckträger
+    ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(W.x,W.y-bh*2.5);ctx.lineTo(N.x,N.y-bh*2.5);ctx.lineTo(E.x,E.y-bh*2.5);ctx.stroke();
+  }else if(t.id==='suv'){
+    // SUV: hohe, kastige Kabine über volle Fahrzeugbreite
+    isoCarBox(ctx,0,0,cw*.92,ch*.9,bh,bh*2.2,ltC(col,15),dkC(col,34),dkC(col,18));
+    ctx.fillStyle='rgba(150,205,245,.5)';
+    ctx.beginPath();ctx.moveTo(0,-bh*2.2+2);ctx.lineTo(cw*.26,-bh*1.75);ctx.lineTo(0,-bh*1.5);ctx.lineTo(-cw*.26,-bh*1.75);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(20,20,25,.35)';
+    ctx.fillRect(W.x+cw*.08,W.y-bh*1.9,cw*.2,bh*.9); // Seitenfenster links
+  }else if(t.id==='sport'){
+    // Sportwagen: sehr niedriges, gestrecktes Profil + kleine Kanzel + Spoiler
+    isoCarBox(ctx,0,-ch*.06,cw*.5,ch*.42,bh,bh*1.5,ltC(col,15),dkC(col,34),dkC(col,18));
+    ctx.fillStyle='rgba(150,205,245,.6)';
+    ctx.beginPath();ctx.moveTo(0,-bh*1.5-ch*.06+1);ctx.lineTo(cw*.16,-bh*1.28-ch*.06);ctx.lineTo(0,-bh*1.1-ch*.06);ctx.lineTo(-cw*.16,-bh*1.28-ch*.06);ctx.closePath();ctx.fill();
+    ctx.fillStyle=dkC(col,55);
+    ctx.fillRect(S.x-cw*.22,S.y-bh-3*ISO_ZOOM,cw*.44,3*ISO_ZOOM); // Heckspoiler
+    ctx.fillStyle='rgba(0,0,0,.15)';
+    ctx.beginPath();ctx.moveTo(N.x,N.y-bh*.3);ctx.lineTo(0,-bh*.9);ctx.lineTo(N.x,N.y-bh*1.05);ctx.closePath();ctx.fill(); // Motorhaube-Schattierung
+  }else{
+    // Limousine: klassische Kabine, nach hinten versetzt
+    const cbx=-cw*.04,cby=ch*.08;
+    isoCarBox(ctx,cbx,cby,cw*.62,ch*.56,bh,bh*1.85,ltC(col,15),dkC(col,34),dkC(col,18));
+    ctx.fillStyle='rgba(160,215,250,.55)';
+    ctx.beginPath();ctx.moveTo(cbx,cby-(bh*1.85-bh)-ch*.28+1);ctx.lineTo(cbx+cw*.2,cby-bh*.55);ctx.lineTo(cbx,cby-bh*.3);ctx.lineTo(cbx-cw*.2,cby-bh*.55);ctx.closePath();ctx.fill();
+  }
+
+  // Front- und Rücklichter
+  ctx.fillStyle='rgba(255,250,200,.9)';
+  ctx.beginPath();ctx.arc(N.x-cw*.16,N.y-bh*.4,1.3*ISO_ZOOM,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(N.x+cw*.16,N.y-bh*.4,1.3*ISO_ZOOM,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(220,40,40,.85)';
+  ctx.beginPath();ctx.arc(S.x-cw*.16,S.y-bh*.4,1.1*ISO_ZOOM,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(S.x+cw*.16,S.y-bh*.4,1.1*ISO_ZOOM,0,Math.PI*2);ctx.fill();
+
+  ctx.restore();
+}
+
+
+// ══════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════
+const TARGET_STATIONS=20; // Stadtgröße: Spieler + KI zusammen
+const AI_NAMES=['TotalDiscount','Hank Tank','Shell Rival','OMV Neo','JET Fuel','HEM City','Star Gas','BP Express',
+                'Aral Direkt','Esso Point','Q1 Energy','Avia Nord','Westfalen Gas','Orlen Star','bft Spar',
+                'Tamoil Blitz','Agip Classic','Elan Fuel','Sprint Oil','Raiffeisen Tank','Team Anonym','Preis-Fuchs'];
+const EVENTS=[
+  {t:'🛢️ OPEC erhöht Produktion – Rohölpreise fallen.',d:-.06},{t:'🔥 Raffinerie-Störung – Engpässe möglich!',d:+.08},
+  {t:'🌡️ Hitzewelle: Reiseboom – Nachfrage steigt!',d:+.03},{t:'❄️ Wintereinbruch – Benzin-Nachfrage sinkt.',d:-.03},
+  {t:'💰 Energiesteuersenkung beschlossen!',d:-.07},{t:'🎉 Stadtfest – Rekordbesucher!',d:0},
+  {t:'🌍 Nahost-Krise – Ölpreis springt!',d:+.11},{t:'📦 Neue Pipeline – Versorgung gesichert.',d:-.05},
+  {t:'⚡ E-Auto-Boom – Benzin-Nachfrage sinkt leicht.',d:-.02},{t:'🚧 Baustelle B31 – Umleitung!',d:0},
+];
+
+const G={
+  myName:'',myIdx:0,isHost:false,isSolo:false,lobbyCode:'',
+  gameOn:false,
+  buyPrice:1.42,myCapital:10000,myInv:0,myPrice:1.59,
+  myCnt:0,myLastProfit:0,myTotalRev:0,myStorageCosts:0,myFuelCost:0,infoHudMode:'oil',
+  rawOilHist:[],  // [{t, p}] – Rohöl-Preisverlauf
+  players:[],
+  custIv:null,newsIv:null,aiIv:null,syncIv:null,storageIv:null,oilIv:null,
+};
+
+// ══════════════════════════════════════
+// UTIL
+// ══════════════════════════════════════
+function eur(n){const abs=Math.abs(Math.round(n));const s=abs.toLocaleString('de-DE')+'€';return n<0?'-'+s:s;}
+function fmt(n){return Number(n).toFixed(2).replace('.',',');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+let toT;
+function toast(m,ms=2400){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(toT);toT=setTimeout(()=>el.classList.remove('show'),ms);}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+const lk=()=>'sk_'+G.lobbyCode;
+const saveLobby=d=>{try{localStorage.setItem(lk(),JSON.stringify(d))}catch(e){}};
+const loadLobby=()=>{try{return JSON.parse(localStorage.getItem(lk())||'null')}catch(e){return null}};
+function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>c[0|Math.random()*c.length]).join('');}
+function getName(){return(document.getElementById('inp-name').value.trim()||'Team Anonym');}
+
+// ══════════════════════════════════════
+// LOBBY
+// ══════════════════════════════════════
+function goCreate(){
+  G.myName=getName();G.myIdx=0;G.isHost=true;G.isSolo=false;G.lobbyCode=genCode();
+  const d={code:G.lobbyCode,players:[{name:G.myName,idx:0,isHost:true}],phase:'lobby'};
+  saveLobby(d);openLobby(d);
+}
+function joinLobby(){
+  const code=document.getElementById('inp-code').value.trim().toUpperCase();
+  if(code.length!==6){toast('6-stelligen Code eingeben');return;}
+  G.lobbyCode=code;const d=loadLobby();
+  if(!d){toast('Lobby nicht gefunden!');return;}
+  if(d.phase!=='lobby'){toast('Spiel läuft bereits!');return;}
+  if(d.players.length>=6){toast('Lobby voll!');return;}
+  G.myName=getName();G.myIdx=d.players.length;G.isHost=false;G.isSolo=false;
+  d.players.push({name:G.myName,idx:G.myIdx,isHost:false});saveLobby(d);openLobby(d);
+}
+function openLobby(d){
+  document.getElementById('lobby-code-el').textContent=G.lobbyCode;
+  document.getElementById('lobby-role').textContent=G.isHost?'HOST':'GAST';
+  renderLP(d.players);showScreen('s-lobby');startLobbyPoll();
+}
+let lpoll=null;
+function startLobbyPoll(){
+  if(lpoll)clearInterval(lpoll);
+  lpoll=setInterval(()=>{
+    const d=loadLobby();if(!d)return;
+    renderLP(d.players);
+    if(d.phase==='live'){clearInterval(lpoll);lpoll=null;
+      G.players=d.players.map(p=>mkP(p));startGame();}
+    if(d.phase==='ended'&&G.gameOn){clearInterval(lpoll);lpoll=null;syncFromLobby();showFinal();}
+  },1200);
+}
+function renderLP(ps){
+  document.getElementById('lobby-count').textContent=ps.length;
+  document.getElementById('lobby-players').innerHTML=ps.map((p,i)=>`
+    <div class="pr">
+      <div class="av" style="background:${C_BG[i]};color:${C_FG[i]}">${AVTS[i]}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${esc(p.name)}</div>
+      <div style="font-size:11px;color:var(--muted)">${p.isHost?'Host':'Bereit'}</div></div>
+    </div>`).join('');
+}
+function hostStart(){
+  const d=loadLobby();if(!d)return;
+  G.players=d.players.map(p=>mkP(p));
+  const need=Math.max(0,TARGET_STATIONS-G.players.length); // Stadt auf 20 Tankstellen auffüllen
+  for(let i=0;i<need;i++)G.players.push(mkAI(G.players.length,i));
+  d.phase='live';d.players=G.players;saveLobby(d);
+  clearInterval(lpoll);lpoll=null;startGame();
+}
+function goSolo(){
+  G.myName=getName();G.myIdx=0;G.isHost=true;G.isSolo=true;G.lobbyCode=genCode();
+  G.players=[mkP({name:G.myName,idx:0})];
+  const aiCount=TARGET_STATIONS-1; // Stadt auf 20 Tankstellen auffüllen (19 KI + Du)
+  for(let i=0;i<aiCount;i++)G.players.push(mkAI(G.players.length,i));
+  startGame();
+}
+function mkP(p){return{...p,capital:10000,inventory:0,price:1.59,avgBuyCost:1.42,cnt:0,totalRev:0,storageCosts:0,isAI:false};}
+function mkAI(idx,i){return{name:AI_NAMES[i%AI_NAMES.length],idx,capital:10000,inventory:0,price:+(1.45+Math.random()*.2).toFixed(2),avgBuyCost:1.42,cnt:0,totalRev:0,storageCosts:0,isAI:true,isHost:false};}
+function leaveLobby(){if(lpoll){clearInterval(lpoll);lpoll=null;}showScreen('s-start');}
+function copyCode(){navigator.clipboard?.writeText(G.lobbyCode);toast('Code kopiert: '+G.lobbyCode);}
+
+// ══════════════════════════════════════
+// GAME START
+// ══════════════════════════════════════
+function startGame(){
+  G.gameOn=true;G.buyPrice=1.42;G.myCapital=10000;G.myInv=0;G.myPrice=1.59;
+  G.myCnt=0;G.myLastProfit=0;G.myTotalRev=0;G.myStorageCosts=0;G.myFuelCost=0;G.infoHudMode='oil';
+
+  // AI buys initial stock
+  if(G.isSolo)aiInit();
+
+  // Init UI
+  updateBuyCosts();
+  document.getElementById('g-pslider').value=159;
+  onPrice(159);
+  updateGameUI();
+  renderMarket();
+
+  // show end button for host
+  document.getElementById('end-btn-wrap').style.display='block';
+  document.getElementById('btn-end').style.display=G.isHost?'flex':'none';
+  document.getElementById('btn-end-guest').style.display=G.isHost?'none':'flex';
+
+  showScreen('s-game');
+  setTimeout(()=>{initIso();initChart();initOilChart();},80);
+
+  // Record oil price every 15s (for smooth baseline even without news)
+  G.oilIv=setInterval(()=>{if(G.gameOn)recordOilPrice();},15000);
+  // Record player prices every 6s for smooth chart
+  CH.chartIv=setInterval(()=>{if(G.gameOn)recordPrices();},6000);
+
+  // Kunden alle 0,8s (erster nach 8s, damit Spieler vorher einkaufen können) – deutlich mehr Umsatz
+  setTimeout(()=>{
+    customerEvent();
+    G.custIv=setInterval(customerEvent,800);
+  },8000);
+
+  // Wholesale price / news alle 60s (ohne Quiz-Unterbrechung)
+  G.newsIv=setInterval(()=>{
+    if(!G.gameOn)return;
+    const ev=EVENTS[0|Math.random()*EVENTS.length];
+    applyMarketEvent(ev);
+  },60000);
+
+  // AI adjusts every 10s
+  G.aiIv=setInterval(aiTick,10000);
+
+  // Storage costs every 10s (0,002 €/L)
+  G.storageIv=setInterval(storageTick,10000);
+
+  // Multiplayer sync every 2s
+  if(!G.isSolo){
+    G.syncIv=setInterval(()=>{
+      syncToLobby();
+      const d=loadLobby();
+      if(d&&d.phase==='ended'&&G.gameOn){clearAllIntervals();showFinal();}
+      if(d&&d.players){
+        d.players.forEach((p,i)=>{if(G.players[i]&&p.idx!==G.myIdx)Object.assign(G.players[i],{capital:p.capital,inventory:p.inventory,price:p.price,cnt:p.cnt||0,totalRev:p.totalRev||0});});
+        renderMarket();
+      }
+    },2000);
+  }
+
+  loadAITip();
+}
+
+function syncToLobby(){
+  const d=loadLobby();if(!d)return;
+  const me={capital:G.myCapital,inventory:G.myInv,price:G.myPrice,cnt:G.myCnt,totalRev:G.myTotalRev,avgBuyCost:G.buyPrice};
+  if(d.players[G.myIdx])Object.assign(d.players[G.myIdx],me);
+  saveLobby(d);
+}
+function syncFromLobby(){
+  const d=loadLobby();if(!d)return;
+  if(d.players)d.players.forEach((p,i)=>{if(G.players[i])Object.assign(G.players[i],p);});
+  G.myCapital=G.players[G.myIdx]?.capital||G.myCapital;
+}
+function clearAllIntervals(){
+  G.gameOn=false;
+  clearInterval(G.custIv);clearInterval(G.newsIv);clearInterval(G.aiIv);
+  clearInterval(G.syncIv);clearInterval(G.storageIv);
+  clearInterval(CH.chartIv);clearInterval(G.oilIv);
+  stopIso();
+}
+
+// ══════════════════════════════════════
+// STORAGE COSTS (0,002 €/L alle 10s)
+// ══════════════════════════════════════
+const STORAGE_RATE=0.002; // €/L pro 10s
+function storageTick(){
+  if(!G.gameOn)return;
+  G.players.forEach(p=>{
+    if(p.inventory<=0)return;
+    const cost=+(p.inventory*STORAGE_RATE).toFixed(2);
+    p.capital=+(p.capital-cost).toFixed(2);
+    p.storageCosts=+((p.storageCosts||0)+cost).toFixed(2);
+    if(p.idx===G.myIdx){
+      G.myCapital=p.capital;
+      G.myStorageCosts=+(G.myStorageCosts+cost).toFixed(2);
+    }
+  });
+  // Update UI
+  document.getElementById('g-cap').textContent=eur(G.myCapital);
+  document.getElementById('g-storage-total').textContent=eur(G.myStorageCosts);
+  const rate=+(G.myInv*STORAGE_RATE).toFixed(2);
+  document.getElementById('g-storage-rate').textContent=eur(rate)+'/10s';
+  renderMarket();
+  if(!G.isSolo)syncToLobby();
+}
+
+// ══════════════════════════════════════
+// INSTANT BUY (one tap)
+// ══════════════════════════════════════
+function instaBuy(n){
+  if(!G.gameOn)return;
+  const cost=+(n*G.buyPrice).toFixed(2);
+  if(cost>G.myCapital){toast('❌ Nicht genug Kapital!');return;}
+  if(G.myInv+n>10000){const space=10000-G.myInv;if(space<=0){toast('Tank voll!');return;}
+    const adj=Math.floor(space/100)*100;if(adj<=0){toast('Tank fast voll!');return;}
+    const ac=+(adj*G.buyPrice).toFixed(2);G.myCapital=+(G.myCapital-ac).toFixed(2);G.myInv+=adj;
+    G.myFuelCost=+(G.myFuelCost+ac).toFixed(2);
+    G.players[G.myIdx].capital=G.myCapital;G.players[G.myIdx].inventory=G.myInv;G.players[G.myIdx].avgBuyCost=G.buyPrice;
+    toast(`✅ ${adj.toLocaleString('de-DE')} L gekauft – ${eur(ac)}`);updateGameUI();return;
+  }
+  G.myCapital=+(G.myCapital-cost).toFixed(2);G.myInv+=n;
+  G.myFuelCost=+(G.myFuelCost+cost).toFixed(2);
+  G.players[G.myIdx].capital=G.myCapital;G.players[G.myIdx].inventory=G.myInv;G.players[G.myIdx].avgBuyCost=G.buyPrice;
+  toast(`✅ ${n.toLocaleString('de-DE')} L – ${eur(cost)}`);
+  updateGameUI();renderMarket();
+}
+
+function updateBuyCosts(){
+  [500,2000,5000].forEach(n=>{
+    const el=document.getElementById('bc-'+n);
+    if(el)el.textContent=eur(+(n*G.buyPrice).toFixed(2));
+  });
+}
+
+// ══════════════════════════════════════
+// PRICE CONTROL (live, no confirm)
+// ══════════════════════════════════════
+let pDebounce=null;
+function priceStep(dir){
+  const slider=document.getElementById('g-pslider');
+  let v=parseInt(slider.value)||159;
+  v=Math.max(100,Math.min(280,v+dir*1)); // 1 Klick = 1 Cent
+  slider.value=v;
+  onPrice(v);
+  const el=document.getElementById('g-pval');
+  el.style.transform='scale(1.12)';
+  setTimeout(()=>{el.style.transform='scale(1)';},150);
+  const hudEl=document.getElementById('iso-price-val');
+  if(hudEl){hudEl.style.transform='scale(1.15)';setTimeout(()=>{hudEl.style.transform='scale(1)';},150);}
+}
+function onPrice(v){
+  v=parseInt(v)||159;G.myPrice=v/100;
+  document.getElementById('g-pval').textContent=fmt(G.myPrice);
+  const hudEl=document.getElementById('iso-price-val');
+  if(hudEl)hudEl.textContent=fmt(G.myPrice)+' €';
+  const pct=((v-100)/(280-100))*100;
+  document.getElementById('g-pslider').style.background=`linear-gradient(to right,var(--fuel) ${pct}%,var(--line2) ${pct}%)`;
+  updateMarginDisp();
+  clearTimeout(pDebounce);
+  pDebounce=setTimeout(()=>{G.players[G.myIdx].price=G.myPrice;renderMarket();recordPrices();},600);
+}
+function updateMarginDisp(){
+  const mg=+(G.myPrice-G.buyPrice).toFixed(3);
+  document.getElementById('g-bref').textContent=fmt(G.buyPrice)+' €/L';
+  const el=document.getElementById('g-marg');
+  el.textContent=(mg>=0?'+':'')+fmt(mg)+' €/L';el.style.color=mg>=0?'var(--green)':'var(--red)';
+  updateFixedStats();
+}
+
+// Fixierte Leiste unter der Karte: Kosten / Erlös / Gewinn / Marge für die eigene Tankstelle
+function updateFixedStats(){
+  const kosten=+(G.myFuelCost+G.myStorageCosts).toFixed(2);
+  const erlos=G.myTotalRev||0;
+  const gewinn=+(erlos-kosten).toFixed(2);
+  const marge=+(G.myPrice-G.buyPrice).toFixed(3);
+  const set=(id,val,colorPos)=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.textContent=val;
+    if(colorPos!==undefined)el.style.color=colorPos?'var(--green)':'var(--red)';
+  };
+  set('fs-cost',eur(kosten));
+  set('fs-rev',eur(erlos));
+  set('fs-profit',eur(gewinn),gewinn>=0);
+  set('fs-margin',(marge>=0?'+':'')+fmt(marge)+' €/L',marge>=0);
+}
+
+// ══════════════════════════════════════
+// CUSTOMER EVENT
+// ══════════════════════════════════════
+function customerEvent(){
+  if(!G.gameOn)return;
+  const demand=420,ps=G.players;
+  const active=ps.filter(p=>p.inventory>=50);
+  if(active.length===0)return;
+  const mn=Math.min(...active.map(p=>p.price));
+  const wts=active.map(p=>Math.pow(mn/p.price,3)*(0.8+Math.random()*.4));
+  const tot=wts.reduce((a,b)=>a+b,0);
+  let rr=Math.random()*tot,chosen=active[0];
+  for(let i=0;i<active.length;i++){rr-=wts[i];if(rr<=0){chosen=active[i];break;}}
+  const sold=Math.min(demand,chosen.inventory);
+  const rev=+(sold*chosen.price).toFixed(2);
+  const procCost=+(sold*(chosen.avgBuyCost||G.buyPrice)).toFixed(2);
+  const profit=+(rev-procCost).toFixed(2);
+  chosen.inventory-=sold;chosen.capital=+(chosen.capital+profit).toFixed(2);
+  chosen.cnt=(chosen.cnt||0)+1;chosen.totalRev=(chosen.totalRev||0)+rev;
+  if(chosen.idx===G.myIdx){
+    G.myCapital=chosen.capital;G.myInv=chosen.inventory;
+    G.myCnt=chosen.cnt;G.myLastProfit=profit;G.myTotalRev=chosen.totalRev;
+    // flash
+    const el=document.getElementById('g-cap');
+    el.textContent=eur(G.myCapital);
+    el.classList.remove('earn');void el.offsetWidth;el.classList.add('earn');
+    setTimeout(()=>el.classList.remove('earn'),400);
+    document.getElementById('g-last').textContent=eur(profit);
+    document.getElementById('g-last').style.color=profit>=0?'var(--green)':'var(--red)';
+    document.getElementById('g-cnt').textContent=G.myCnt;
+  }
+  updateGameUI();renderMarket();recordPrices();
+  // Spawn a car visually going to the winning station
+  if(ISO.cars.length<140)spawnCarToStation(chosen.idx); // jeder Verkauf = sichtbares Auto zur Station
+  if(!G.isSolo)syncToLobby();
+}
+
+// ══════════════════════════════════════
+// UI UPDATE
+// ══════════════════════════════════════
+function updateGameUI(){
+  document.getElementById('g-cap').textContent=eur(G.myCapital);
+  const pct=Math.round((G.myInv/10000)*100);
+  document.getElementById('g-inv').textContent=G.myInv.toLocaleString('de-DE')+' L';
+  const tankHud=document.getElementById('iso-tank-val');
+  if(tankHud)tankHud.textContent=G.myInv.toLocaleString('de-DE')+' L';
+  const bar=document.getElementById('g-tfill');
+  bar.style.width=pct+'%';
+  bar.style.background=pct<15?'linear-gradient(90deg,#7B0000,var(--red))':pct<35?'linear-gradient(90deg,#8B4500,#E67E22)':'linear-gradient(90deg,#1A6B38,var(--green))';
+  // tank warnings
+  const warn=document.getElementById('tank-warn');
+  const buyCard=document.getElementById('buy-card');
+  if(G.myInv<=0){warn.textContent='🚨 TANK LEER – Keine Kunden bis zum Nachkaufen!';warn.style.display='block';buyCard.classList.add('urgent');}
+  else if(G.myInv<800){warn.textContent='⚠️ Tank fast leer – jetzt nachkaufen!';warn.style.display='block';buyCard.classList.add('urgent');}
+  else{warn.style.display='none';buyCard.classList.remove('urgent');}
+  // share
+  const tot=G.players.reduce((s,p)=>s+(p.cnt||0),0)||1;
+  const sh=Math.round(((G.players[G.myIdx].cnt||0)/tot)*100);
+  document.getElementById('g-share').textContent=sh+'%';
+  document.getElementById('g-bp').textContent=fmt(G.buyPrice)+' €/L';
+  updateBuyCosts();updateMarginDisp();
+  const rate=+(G.myInv*STORAGE_RATE).toFixed(2);
+  const rateEl=document.getElementById('g-storage-rate');
+  if(rateEl)rateEl.textContent=eur(rate)+'/10s';
+  const totEl=document.getElementById('g-storage-total');
+  if(totEl)totEl.textContent=eur(G.myStorageCosts);
+  renderInfoHud();
+}
+
+// Umschaltbares HUD auf der Karte: Rohölpreis <-> Ranking, dauerhaft sichtbar
+function toggleInfoHud(){
+  G.infoHudMode=G.infoHudMode==='oil'?'ranking':'oil';
+  renderInfoHud();
+}
+function renderInfoHud(){
+  const titleEl=document.getElementById('iso-info-title');
+  const contentEl=document.getElementById('iso-info-content');
+  if(!titleEl||!contentEl)return;
+  if(G.infoHudMode==='oil'){
+    titleEl.textContent='Rohöl';
+    contentEl.innerHTML=`<div class="ih-oil-price">${fmt(G.buyPrice)} €/L</div>`;
+  }else{
+    titleEl.textContent='Ranking';
+    const sorted=[...G.players].sort((a,b)=>b.capital-a.capital).slice(0,5);
+    contentEl.innerHTML=sorted.map((p,i)=>
+      `<div class="ih-rank-row ${p.idx===G.myIdx?'me':''}"><span>${i+1}. ${esc((p.name||'').slice(0,9))}</span><span>${eur(p.capital)}</span></div>`
+    ).join('');
+  }
+}
+
+function renderMarket(){
+  const ps=G.players;
+  const active=ps.filter(p=>p.price>0&&p.inventory>0);
+  const mn=active.length?Math.min(...active.map(p=>p.price)):0;
+  document.getElementById('g-market').innerHTML=ps.map((p,i)=>{
+    const isMe=p.idx===G.myIdx,isCheap=p.price===mn&&mn>0&&p.inventory>0;
+    const pct=Math.round((p.inventory/10000)*100);
+    return`<div class="mcard ${isMe?'me':''} ${isCheap&&!isMe?'cheapest':''}">
+      <div style="width:30px;height:30px;border-radius:50%;background:${C_BG[i]};color:${C_FG[i]};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${AVTS[i]}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:500">${esc(p.name)}${isMe?' (Du)':''}${isCheap?' 💲':''} ${p.inventory<=0?'<span style="color:var(--red);font-size:10px">LEER</span>':''}</div>
+        <div style="height:4px;background:var(--line2);border-radius:2px;margin:4px 0"><div style="height:100%;width:${pct}%;background:${C_FG[i]};border-radius:2px;transition:.3s"></div></div>
+        <div style="font-size:10px;color:var(--muted)">${p.inventory.toLocaleString('de-DE')} L · ${p.cnt||0} Kunden · ${eur(p.capital)}</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${isCheap?'var(--green)':p.inventory<=0?'var(--red)':'var(--text)'}">${fmt(p.price)}<span style="font-size:12px;color:var(--muted)"> €</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+// AI
+// ══════════════════════════════════════
+function aiInit(){
+  G.players.forEach(p=>{
+    if(!p.isAI)return;
+    const bl=2000+Math.floor(Math.random()*4000/100)*100;
+    const c=+(bl*G.buyPrice).toFixed(2);p.capital-=c;p.inventory+=bl;p.avgBuyCost=G.buyPrice;
+  });
+}
+function aiTick(){
+  if(!G.gameOn)return;
+  G.players.forEach(p=>{
+    if(!p.isAI)return;
+    if(p.inventory<1200&&p.capital>G.buyPrice*2500){
+      const bl=Math.min(4000,Math.floor(p.capital/(G.buyPrice*1.1)/100)*100);
+      if(bl>0){const c=+(bl*G.buyPrice).toFixed(2);p.capital-=c;p.inventory+=bl;p.avgBuyCost=G.buyPrice;}
+    }
+    const prs=G.players.filter(q=>q.inventory>0&&q.price>0).map(q=>q.price);
+    if(!prs.length)return;
+    const mn=Math.min(...prs),mx=Math.max(...prs);
+    let np;
+    if(p.price===mn)np=p.price+(Math.random()<.35?.02:0);
+    else if(p.price===mx)np=p.price-.03-Math.random()*.02;
+    else np=(mn+mx)/2-.01+Math.random()*.05;
+    p.price=Math.max(G.buyPrice-.05,Math.min(2.80,+(np.toFixed(2))));
+  });
+  renderMarket();recordPrices();
+}
+
+// ══════════════════════════════════════
+// ROHÖL BÖRSEN-CHART
+// ══════════════════════════════════════
+const OIL={canvas:null,ctx:null,W:0,H:120,dpr:1,MAX:90,animFrame:0};
+
+function initOilChart(){
+  OIL.canvas=document.getElementById('oil-chart');if(!OIL.canvas)return;
+  OIL.dpr=Math.min(window.devicePixelRatio||1,2);
+  const r=OIL.canvas.getBoundingClientRect();
+  OIL.W=Math.max(r.width||340,200);
+  OIL.canvas.width=Math.round(OIL.W*OIL.dpr);
+  OIL.canvas.height=Math.round(OIL.H*OIL.dpr);
+  OIL.ctx=OIL.canvas.getContext('2d');
+  OIL.ctx.scale(OIL.dpr,OIL.dpr);
+  G.rawOilHist=[];
+  recordOilPrice(); // initial point
+  // animate the pulsing dot
+  (function oilAnim(){OIL.animFrame++;drawOilChart();requestAnimationFrame(oilAnim);})();
+}
+
+function recordOilPrice(){
+  const t=Date.now();const p=G.buyPrice;
+  G.rawOilHist.push({t,p});
+  if(G.rawOilHist.length>OIL.MAX)G.rawOilHist.shift();
+  // update big price display
+  const bigEl=document.getElementById('oil-price-big');
+  const badgeEl=document.getElementById('oil-change-badge');
+  if(bigEl)bigEl.textContent=fmt(p);
+  if(badgeEl&&G.rawOilHist.length>=2){
+    const first=G.rawOilHist[0].p;
+    const delta=+(p-first).toFixed(3);
+    const sign=delta>=0?'+':'';
+    badgeEl.textContent=sign+fmt(Math.abs(delta));
+    badgeEl.style.background=delta>=0?'rgba(0,204,102,.15)':'rgba(231,76,60,.15)';
+    badgeEl.style.color=delta>=0?'#00CC66':'#E74C3C';
+  }
+  if(G.rawOilHist.length>=2){
+    const lo=Math.min(...G.rawOilHist.map(h=>h.p)),hi=Math.max(...G.rawOilHist.map(h=>h.p));
+    const rangeEl=document.getElementById('oil-stat-range');
+    if(rangeEl)rangeEl.textContent=`T: ${fmt(lo)} – ${fmt(hi)} €/L`;
+  }
+  drawOilChart();
+}
+
+function drawOilChart(){
+  const{ctx,W,H,hist:_,animFrame}=OIL;
+  const hist=G.rawOilHist;
+  if(!ctx)return;
+  const padL=36,padR=8,padT=8,padB=14;
+  const cW=W-padL-padR,cH=H-padT-padB;
+
+  // Background
+  ctx.fillStyle='#060809';ctx.fillRect(0,0,W,H);
+
+  // Subtle scanlines
+  for(let y=0;y<H;y+=4){
+    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(0,y,W,1);
+  }
+
+  if(hist.length<2){
+    ctx.fillStyle='#1A3A1A';ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Warte auf Preisbewegung…',W/2,H/2);return;
+  }
+
+  const prices=hist.map(h=>h.p);
+  let minP=Math.min(...prices),maxP=Math.max(...prices);
+  const span=maxP-minP;
+  if(span<0.08){minP-=(0.08-span)/2;maxP+=(0.08-span)/2;}
+  minP=+(minP-.01).toFixed(3);maxP=+(maxP+.01).toFixed(3);
+
+  const pY=p=>padT+cH-((p-minP)/(maxP-minP))*cH;
+  const iX=i=>padL+((i)/(OIL.MAX-1))*cW;
+  const offset=OIL.MAX-hist.length;
+
+  // Horizontal grid + price labels
+  const steps=4;
+  for(let s=0;s<=steps;s++){
+    const p=minP+s*(maxP-minP)/steps;
+    const y=pY(p);
+    ctx.strokeStyle=s===0||s===steps?'rgba(0,180,80,0.12)':'rgba(0,180,80,0.06)';
+    ctx.lineWidth=1;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle=s===steps||s===0?'rgba(0,200,100,.5)':'rgba(0,200,100,.25)';
+    ctx.font=`9px 'DM Mono',monospace`;ctx.textAlign='right';
+    ctx.fillText(p.toFixed(2),padL-3,y+3);
+  }
+
+  // Vertical grid (time marks)
+  ctx.strokeStyle='rgba(0,100,40,.12)';ctx.lineWidth=1;
+  for(let i=10;i<OIL.MAX;i+=15){
+    const x=iX(i);
+    ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
+  }
+
+  // Compute points
+  const pts=hist.map((h,i)=>({x:iX(offset+i),y:pY(h.p)}));
+
+  // Area gradient fill
+  const grad=ctx.createLinearGradient(0,padT,0,H-padB);
+  grad.addColorStop(0,'rgba(0,200,80,0.25)');
+  grad.addColorStop(0.6,'rgba(0,200,80,0.06)');
+  grad.addColorStop(1,'rgba(0,200,80,0.0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x,H-padB);
+  pts.forEach(pt=>ctx.lineTo(pt.x,pt.y));
+  ctx.lineTo(pts[pts.length-1].x,H-padB);
+  ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+
+  // Glow line (two passes: glow + sharp)
+  [5,1.8].forEach((lw,pass)=>{
+    ctx.beginPath();
+    pts.forEach((pt,i)=>i===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y));
+    ctx.strokeStyle=pass===0?'rgba(0,220,90,0.18)':'#00DD66';
+    ctx.lineWidth=lw;ctx.lineJoin='round';
+    ctx.shadowBlur=pass===0?0:8;ctx.shadowColor='#00CC66';
+    ctx.stroke();ctx.shadowBlur=0;
+  });
+
+  // Colored up/down segments
+  for(let i=1;i<pts.length;i++){
+    const up=hist[i].p>=hist[i-1].p;
+    ctx.beginPath();ctx.moveTo(pts[i-1].x,pts[i-1].y);ctx.lineTo(pts[i].x,pts[i].y);
+    ctx.strokeStyle=up?'#00FF80':'#FF4455';ctx.lineWidth=1.8;ctx.lineJoin='round';
+    ctx.shadowBlur=4;ctx.shadowColor=up?'#00CC66':'#E74C3C';
+    ctx.stroke();ctx.shadowBlur=0;
+  }
+
+  // Current price line (dashed horizontal)
+  const curP=hist[hist.length-1].p;
+  const curY=pY(curP);
+  ctx.strokeStyle='rgba(0,220,90,0.35)';ctx.lineWidth=1;
+  ctx.setLineDash([4,4]);ctx.lineDashOffset=-(animFrame*.5)%8;
+  ctx.beginPath();ctx.moveTo(padL,curY);ctx.lineTo(W-padR,curY);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Pulsing current price dot
+  const last=pts[pts.length-1];
+  const pulse=0.4+0.35*Math.sin(animFrame*.08);
+  ctx.globalAlpha=pulse;ctx.fillStyle='#00FF80';
+  ctx.beginPath();ctx.arc(last.x,last.y,9,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;ctx.fillStyle='#00FF80';
+  ctx.beginPath();ctx.arc(last.x,last.y,3.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#060809';
+  ctx.beginPath();ctx.arc(last.x,last.y,1.5,0,Math.PI*2);ctx.fill();
+
+  // Price label at current dot
+  const curLabel=fmt(curP)+' €';
+  const labelX=Math.min(last.x+10,W-padR-30);
+  ctx.fillStyle='#00FF80';ctx.font=`bold 9px 'DM Mono',monospace`;ctx.textAlign='left';
+  ctx.shadowBlur=6;ctx.shadowColor='#00CC66';
+  ctx.fillText(curLabel,labelX,curY+3);ctx.shadowBlur=0;
+}
+
+function applyMarketEvent(ev){
+  if(!ev)return;
+  G.buyPrice=Math.max(.90,Math.min(2.20,+(G.buyPrice+ev.d).toFixed(3)));
+  document.getElementById('g-news').textContent='📰 '+ev.t;
+  document.getElementById('g-bp').textContent=fmt(G.buyPrice)+' €/L';
+  updateBuyCosts();updateMarginDisp();
+  recordOilPrice();
+  toast('📰 '+ev.t.slice(0,40),3000);
+}
+
+// ══════════════════════════════════════
+// LIVE PRICE CHART (Börsen-Style)
+// ══════════════════════════════════════
+const CH={
+  canvas:null,ctx:null,W:0,H:0,dpr:1,
+  hist:[],   // [{t, prices:[]}]
+  MAX:80,    // max data points kept
+  chartIv:null,
+  tickCount:0,
+};
+
+function initChart(){
+  CH.canvas=document.getElementById('price-chart');if(!CH.canvas)return;
+  CH.dpr=Math.min(window.devicePixelRatio||1,2);
+  const r=CH.canvas.getBoundingClientRect();
+  CH.W=Math.max(r.width||340,200);CH.H=140;
+  CH.canvas.width=Math.round(CH.W*CH.dpr);
+  CH.canvas.height=Math.round(CH.H*CH.dpr);
+  CH.ctx=CH.canvas.getContext('2d');
+  CH.ctx.scale(CH.dpr,CH.dpr);
+  CH.hist=[];CH.tickCount=0;
+}
+
+function recordPrices(){
+  if(!CH.canvas){initChart();}
+  if(!CH.canvas||!CH.ctx)return;
+  CH.tickCount++;
+  const prices=G.players.map(p=>+(p.price||0).toFixed(3));
+  CH.hist.push({t:CH.tickCount,prices});
+  if(CH.hist.length>CH.MAX)CH.hist.shift();
+  drawChart();
+  updateChartLegend();
+}
+
+function drawChart(){
+  const{ctx,W,H,hist}=CH;if(!ctx||hist.length<2)return;
+  const padL=36,padR=6,padT=8,padB=16;
+  const cW=W-padL-padR,cH=H-padT-padB;
+
+  // Background
+  ctx.fillStyle='#070910';ctx.fillRect(0,0,W,H);
+
+  // All prices for range
+  const all=hist.flatMap(h=>h.prices.filter(p=>p>0));
+  if(!all.length)return;
+  let minP=Math.min(...all),maxP=Math.max(...all);
+  const span=maxP-minP;
+  if(span<0.12){minP-=(0.12-span)/2;maxP+=(0.12-span)/2;}
+  minP=+(minP-.015).toFixed(3);maxP=+(maxP+.015).toFixed(3);
+
+  const pY=p=>padT+cH-((p-minP)/(maxP-minP))*cH;
+  const iX=i=>padL+(i/(CH.MAX-1))*cW;
+  const startI=CH.MAX-hist.length;
+
+  // Grid lines
+  const steps=4;
+  for(let s=0;s<=steps;s++){
+    const p=minP+s*(maxP-minP)/steps;
+    const y=pY(p);
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.30)';ctx.font=`9px 'DM Mono',monospace`;ctx.textAlign='right';
+    ctx.fillText(p.toFixed(2),padL-3,y+3);
+  }
+
+  // Vertical time ticks (every 10 data points)
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(let i=0;i<CH.MAX;i+=10){
+    const x=iX(i);
+    ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
+  }
+
+  // Time label
+  ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='8px sans-serif';ctx.textAlign='left';
+  ctx.fillText('← älter',padL,H-3);
+  ctx.textAlign='right';ctx.fillText('jetzt →',W-padR,H-3);
+
+  // Draw each station line
+  G.players.forEach((player,idx)=>{
+    const col=C_FG[idx];
+    const pts=hist.map((h,i)=>{
+      const p=h.prices[idx];
+      if(!p||p<=0)return null;
+      return{x:iX(startI+i),y:pY(p)};
+    }).filter(Boolean);
+    if(pts.length<2)return;
+
+    // Area fill
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x,H-padB);
+    pts.forEach(pt=>ctx.lineTo(pt.x,pt.y));
+    ctx.lineTo(pts[pts.length-1].x,H-padB);
+    ctx.closePath();
+    ctx.fillStyle=col.replace(')',',0.07)').replace('rgb','rgba').replace('#',
+      (m,o,s)=>`rgba(${parseInt(col.slice(1,3),16)},${parseInt(col.slice(3,5),16)},${parseInt(col.slice(5,7),16)},`)+',0.07)';
+    // safer approach:
+    ctx.globalAlpha=0.08;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=1;
+
+    // Line
+    ctx.beginPath();
+    pts.forEach((pt,i)=>i===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y));
+    ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.lineJoin='round';
+    ctx.shadowBlur=6;ctx.shadowColor=col;ctx.stroke();ctx.shadowBlur=0;
+
+    // End dot (current price)
+    const last=pts[pts.length-1];
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(last.x,last.y,3.5,0,Math.PI*2);ctx.fill();
+    // pulsing ring
+    ctx.globalAlpha=0.25+0.25*Math.sin(Date.now()/300+idx);
+    ctx.beginPath();ctx.arc(last.x,last.y,7,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  });
+
+  // Current price labels on right edge
+  G.players.forEach((player,idx)=>{
+    const p=player.price;if(!p)return;
+    const y=pY(p);const col=C_FG[idx];
+    ctx.fillStyle=col;ctx.font=`bold 8px 'DM Mono',monospace`;ctx.textAlign='left';
+    ctx.fillText(p.toFixed(2),W-padR+1,y+3);
+  });
+}
+
+function updateChartLegend(){
+  const el=document.getElementById('chart-legend');if(!el)return;
+  el.innerHTML=G.players.map((p,i)=>`
+    <span style="display:flex;align-items:center;gap:3px;font-size:9px;color:${C_FG[i]}">
+      <span style="width:14px;height:2px;background:${C_FG[i]};border-radius:1px;display:inline-block"></span>
+      <span>${(p.name||'').slice(0,7)}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:9px">${fmt(p.price)}€</span>
+    </span>`).join('');
+}
+
+// ══════════════════════════════════════
+// END GAME
+// ══════════════════════════════════════
+function endGame(){
+  clearAllIntervals();stopIso();
+  if(!G.isSolo){const d=loadLobby();if(d){d.phase='ended';saveLobby(d);}}
+  showFinal();
+}
+
+function showFinal(){
+  document.getElementById('end-btn-wrap').style.display='none';
+  const sorted=[...G.players].sort((a,b)=>b.capital-a.capital);
+  const w=sorted[0];
+  document.getElementById('final-w').textContent=w.idx===G.myIdx?'🎉 DU GEWINNST!':esc(w.name)+' gewinnt!';
+  const rk=['r1','r2','r3','r4','r4','r4'];
+  document.getElementById('final-r').innerHTML=sorted.map((p,i)=>`
+    <div class="ri">
+      <div class="rk ${rk[i]}">${i+1}</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:${C_BG[p.idx]};color:${C_FG[p.idx]};display:flex;align-items:center;justify-content:center;font-size:14px">${AVTS[p.idx]}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${esc(p.name)}${p.idx===G.myIdx?' <span style="color:var(--fuel)">(Du)</span>':''}</div>
+        <div style="font-size:10px;color:var(--muted)">${p.cnt||0} Kunden · Umsatz: ${eur(p.totalRev||0)} · 📦 Lager: ${eur(p.storageCosts||0)}</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${p.capital>=10000?'var(--green)':'var(--red)'}">${eur(p.capital)}</div>
+    </div>`).join('');
+  loadFinalAI(sorted);showScreen('s-final');
+}
+
+// ══════════════════════════════════════
+// CLAUDE AI
+// ══════════════════════════════════════
+async function loadAITip(){
+  const el=document.getElementById('g-ai');el.textContent='Analysiere…';el.style.opacity='.5';
+  const oth=G.players.filter(p=>p.idx!==G.myIdx);
+  const avg=oth.length?oth.reduce((s,p)=>s+(p.price||1.59),0)/oth.length:0;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:
+        `Tankstellen-Berater. Deutsch, max. 2 Sätze. Kein Timer, Spiel läuft bis Host beendet. Einkaufspreis: ${fmt(G.buyPrice)}€/L. Mein Preis: ${fmt(G.myPrice)}€/L. Ø Konkurrenz: ${avg>0?fmt(avg)+'€':' unbekannt'}. Strategie für Preis + Lagerbestand?`}]})});
+    const d=await r.json();el.textContent=d.content?.find(b=>b.type==='text')?.text||'–';el.style.opacity='1';
+  }catch(e){el.textContent='Tipp: Halte deinen Tank stets über 1.000 L – leerer Tank = keine Einnahmen!';el.style.opacity='1';}
+}
+
+async function loadFinalAI(sorted){
+  const el=document.getElementById('final-ai');el.textContent='Analysiere…';el.style.opacity='.5';
+  const me=G.players[G.myIdx];
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:
+        `Wirtschaftsanalyst. Echtzeit-Oligopol ohne Timer. Deutsch, 3 Sätze.
+Mein Team: ${esc(me.name)}, Kapital: ${eur(me.capital)}, ${me.cnt||0} Kunden, Umsatz: ${eur(me.totalRev||0)}, Lagerkosten: ${eur(me.storageCosts||0)}.
+Sieger: ${esc(sorted[0].name)} (${eur(sorted[0].capital)}, ${sorted[0].cnt||0} Kunden, Lagerkosten: ${eur(sorted[0].storageCosts||0)}). Kurze Analyse: War die Lagerstrategie optimal? Tipp für nächstes Mal.`}]})});
+    const d=await r.json();el.textContent=d.content?.find(b=>b.type==='text')?.text||'–';el.style.opacity='1';
+  }catch(e){el.textContent='Mehr Kunden durch günstigeren Preis – aber ohne Marge kein Gewinn. Die Balance ist der Schlüssel!';el.style.opacity='1';}
+}
+</script>
+</body>
+</html>
